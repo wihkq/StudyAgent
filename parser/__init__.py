@@ -12,4 +12,28 @@ class ParserAdapter:
         raise NotImplementedError
 
 
-__all__ = ["ParserAdapter"]
+def get_parser(file_path: str = "") -> "ParserAdapter":
+    """工厂函数：根据全局配置和文件类型返回合适的解析器"""
+    import os
+    from pathlib import Path
+
+    parser_mode = os.getenv("PARSER_MODE", "mock")
+
+    if parser_mode == "mock":
+        from parser.mock_parser import MockParser
+        return MockParser()
+
+    # live 模式：按扩展名选择解析器
+    ext = Path(file_path).suffix.lower() if file_path else ""
+    if ext == ".pptx":
+        from parser.ppt_parser import PptxParser
+        return PptxParser()
+    elif ext == ".pdf":
+        from parser.pdf_parser import PdfParser
+        return PdfParser()
+    else:
+        from parser.mock_parser import MockParser
+        return MockParser()
+
+
+__all__ = ["ParserAdapter", "get_parser"]

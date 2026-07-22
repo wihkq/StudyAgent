@@ -19,7 +19,8 @@ pytest>=8.0.0
 pytest-asyncio>=0.23.0
 
 # ===== 后续 Issue 按需添加 =====
-# python-pptx  (Issue-004 PPT文本解析)
+# PPT 解析
+python-pptx>=0.6.21
 # pypdf        (Issue-003 PDF解析)
 # paddleocr    (Issue-005 OCR)
 # faiss-cpu    (Issue-008 向量数据库)
