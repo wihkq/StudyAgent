@@ -1,5 +1,5 @@
 """AI 问答 API"""
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 router = APIRouter()
