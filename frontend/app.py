@@ -107,14 +107,25 @@ def add_course(name: str) -> str:
     })
     return cid
 
-def add_file_to_course(course_id: str, filename: str, size_mb: float) -> None:
-    """向课程添加课件文件"""
+def add_file_to_course(course_id: str, filename: str, filedata: bytes) -> None:
+    """向课程添加课件文件，同时保存到磁盘"""
+    import uuid
+    from pathlib import Path
+    ext = Path(filename).suffix.lower()
+    file_id = f"doc-{uuid.uuid4().hex[:8]}"
+    save_dir = Path("uploads")
+    save_dir.mkdir(exist_ok=True)
+    save_path = save_dir / f"{file_id}{ext}"
+    save_path.write_bytes(filedata)
+    size_mb = round(len(filedata) / (1024 * 1024), 2)
     for c in st.session_state.courses:
         if c["id"] == course_id:
             c["files"].append({
                 "name": filename,
+                "file_id": file_id,
+                "path": str(save_path),
                 "upload_date": datetime.date.today().isoformat(),
-                "size_mb": round(size_mb, 2),
+                "size_mb": size_mb,
             })
             break
 
@@ -276,8 +287,38 @@ elif page == "📚 我的课程":
                 else:
                     st.info("暂无课件，请上传。")
 
+                # PPT 预览
+                if "view_file" in st.session_state and st.session_state.view_file:
+                    vf = st.session_state.view_file
+                    if vf.get("path", "").endswith(".pptx"):
+                        st.divider()
+                        st.subheader(f"📖 预览：{vf['name']}")
+                        try:
+                            from pptx import Presentation
+                            prs = Presentation(vf["path"])
+                            for i, slide in enumerate(prs.slides):
+                                with st.container(border=True):
+                                    title = slide.shapes.title.text if slide.shapes.title else f"第{i+1}页"
+                                    st.markdown(f"**{i+1}. {title}**")
+                                    texts = []
+                                    for shape in slide.shapes:
+                                        if shape.has_text_frame and not (slide.shapes.title and shape == slide.shapes.title):
+                                            for para in shape.text_frame.paragraphs:
+                                                if para.text.strip():
+                                                    texts.append(para.text.strip())
+                                    if texts:
+                                        st.caption(" | ".join(texts[:5]))
+                        except Exception as e:
+                            st.error(f"解析失败：{e}")
+                    else:
+                        st.info("仅支持预览 .pptx 文件，PDF 预览后续支持。")
+                    if st.button("✕ 关闭预览", key="close_preview", use_container_width=True):
+                        st.session_state.view_file = None
+                        st.rerun()
+
                 if st.button("✕ 关闭课程详情", use_container_width=True):
                     st.session_state.current_course_id = None
+                    st.session_state.view_file = None
                     st.rerun()
 
 
