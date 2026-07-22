@@ -1,0 +1,2 @@
+[permissions]
+allow = ["Bash(cd \"/Users/easonzhong/Desktop/StudyAgent：基于多模态RAG的智能期末复习助手\" && git init)", "Edit", "Bash(cd \"/Users/easonzhong/Desktop/StudyAgent：基于多模态RAG的智能期末复习助手\" && git add -A && git commit -m \"🎉 init: 初始化 StudyAgent 项目仓库，添加产品/技术文档\")"]
