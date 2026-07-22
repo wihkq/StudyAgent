@@ -1,7 +1,5 @@
 """测试：文件上传 API"""
 import io
-import os
-import tempfile
 
 import pytest
 from fastapi.testclient import TestClient
