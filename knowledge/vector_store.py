@@ -33,8 +33,10 @@ class MockVectorStore(VectorStoreProvider):
         self._vectors: dict[str, np.ndarray] = {}
         self._metadata: dict[str, dict] = {}
         self._counter = 0
+        self._cache: dict[int, list[dict]] = {}  # P2 搜索缓存
 
     async def add(self, vectors: list[list[float]], metadata: list[dict]) -> list[str]:
+        self._cache.clear()  # 数据变更时清缓存
         ids = []
         for vec, meta in zip(vectors, metadata):
             self._counter += 1
@@ -47,6 +49,11 @@ class MockVectorStore(VectorStoreProvider):
     async def search(self, query_vector: list[float], top_k: int = 5) -> list[dict]:
         if not self._vectors:
             return []
+
+        # P2 缓存：相同查询直接返回
+        cache_key = hash(tuple(round(v, 4) for v in query_vector))
+        if cache_key in self._cache:
+            return self._cache[cache_key]
 
         query = np.array(query_vector, dtype=np.float32)
         ids = list(self._vectors.keys())
@@ -69,6 +76,7 @@ class MockVectorStore(VectorStoreProvider):
                 "metadata": self._metadata[chunk_id],
                 "score": round(score, 6),
             })
+        self._cache[cache_key] = results  # 写入缓存
         return results
 
     async def delete(self, ids: list[str]) -> None:

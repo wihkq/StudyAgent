@@ -26,23 +26,30 @@ class TutorAgent:
 
 
 class MockTutorAgent(TutorAgent):
-    """Mock TutorAgent — 基于检索结果规则拼接，无需 LLM"""
+    """Mock TutorAgent — 基于检索结果规则拼接，无需 LLM（Issue-016 优化版）"""
 
     async def answer(
         self, question: str, retrieved_chunks: list[dict]
     ) -> dict:
         if not retrieved_chunks:
             return {
-                "answer": "课程资料中未找到与您问题相关的内容。建议检查问题是否与课程相关，或上传更多课程资料。",
+                "answer": (
+                    "📭 **未找到相关内容**\n\n"
+                    "课程资料中暂未收录与您问题相关的知识点。\n\n"
+                    "💡 建议：\n"
+                    "- 检查问题是否与已上传课程相关\n"
+                    "- 尝试用不同关键词提问\n"
+                    "- 上传更多课程 PPT 扩充知识库"
+                ),
                 "sources": [],
             }
 
-        # 取 top-3 最相关 chunk
         top_chunks = retrieved_chunks[:3]
-
-        # 构建回答
-        answer_parts = [f"关于「{question}」："]
+        answer_parts = []
         sources = []
+
+        # 头部总结
+        answer_parts.append(f"## 📖 {question}\n")
 
         for i, chunk in enumerate(top_chunks):
             meta = chunk.get("metadata", {})
@@ -50,19 +57,29 @@ class MockTutorAgent(TutorAgent):
             title = meta.get("title", "")
             content = meta.get("content", "")
             source_file = meta.get("source_file", "")
+            score = chunk.get("score", 0)
 
-            # 截取关键词句
-            excerpt = content[:120] + ("..." if len(content) > 120 else "")
+            excerpt = content[:150] + ("..." if len(content) > 150 else "")
 
-            answer_parts.append(f"{i+1}. {excerpt}")
+            answer_parts.append(f"### 要点 {i+1}：{title}")
+            answer_parts.append(f"> {excerpt}")
+            answer_parts.append(f"📄 来源：{source_file} 第 {page} 页（相关度 {score:.0%}）\n")
+
             sources.append({
                 "page": page,
                 "title": title,
                 "excerpt": excerpt,
                 "source_file": source_file,
+                "score": round(score, 4),
             })
 
-        answer_parts.append(f"\n以上内容来自课程 PPT 第 {', '.join(str(s['page']) for s in sources)} 页。")
+        # 总结
+        answer_parts.append(
+            f"---\n"
+            f"📚 以上内容综合自课程 PPT 第 {', '.join(str(s['page']) for s in sources)} 页。\n"
+            f"💡 建议：认真复习以上章节，重点理解核心概念。"
+        )
+
         return {
             "answer": "\n".join(answer_parts),
             "sources": sources,
