@@ -35,12 +35,11 @@ class TestAddCourseLogic:
             source = "".join(f.readlines()[func.lineno - 1:func.end_lineno])
 
         checks = {
-            "chapter_count 计算": "chapter_count",
-            "至少为 1": "max(1, file_count",
-            "插入头部": "insert(0",
             "ID 前缀 crs-": "crs-",
             "UUID 生成": "uuid4",
-            "status 字段": "status",
+            "插入头部": "insert(0",
+            "创建日期": "created_date",
+            "文件列表": "files",
         }
         for desc, pattern in checks.items():
             assert pattern in source, f"add_course 缺少: {desc}"

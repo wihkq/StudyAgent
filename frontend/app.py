@@ -70,12 +70,17 @@ if "courses" not in st.session_state:
         {
             "id": "crs-demo01",
             "name": "示例课程",
-            "file_count": 8,
-            "chapter_count": 5,
-            "upload_date": datetime.date.today().isoformat(),
-            "status": "ready",
+            "created_date": datetime.date.today().isoformat(),
+            "exam_date": (datetime.date.today() + datetime.timedelta(days=14)).isoformat(),
+            "files": [
+                {"name": "第一章课件.pptx", "upload_date": datetime.date.today().isoformat(), "size_mb": 2.3},
+                {"name": "第二章课件.pptx", "upload_date": datetime.date.today().isoformat(), "size_mb": 3.1},
+                {"name": "复习资料.pdf", "upload_date": datetime.date.today().isoformat(), "size_mb": 1.5},
+            ],
         }
     ]
+if "current_course_id" not in st.session_state:
+    st.session_state.current_course_id = None
 if "learning_stats" not in st.session_state:
     st.session_state.learning_stats = {
         "total_study_hours": 6.5,
@@ -89,17 +94,29 @@ if "exam_date" not in st.session_state:
 
 
 # ===== 辅助函数 =====
-def add_course(name: str, file_count: int) -> None:
-    """添加课程到列表"""
+def add_course(name: str) -> str:
+    """创建新课程，返回课程 ID"""
     import uuid
+    cid = f"crs-{uuid.uuid4().hex[:8]}"
     st.session_state.courses.insert(0, {
-        "id": f"crs-{uuid.uuid4().hex[:8]}",
+        "id": cid,
         "name": name,
-        "file_count": file_count,
-        "chapter_count": max(1, file_count // 2),
-        "upload_date": datetime.date.today().isoformat(),
-        "status": "ready",
+        "created_date": datetime.date.today().isoformat(),
+        "exam_date": (datetime.date.today() + datetime.timedelta(days=14)).isoformat(),
+        "files": [],
     })
+    return cid
+
+def add_file_to_course(course_id: str, filename: str, size_mb: float) -> None:
+    """向课程添加课件文件"""
+    for c in st.session_state.courses:
+        if c["id"] == course_id:
+            c["files"].append({
+                "name": filename,
+                "upload_date": datetime.date.today().isoformat(),
+                "size_mb": round(size_mb, 2),
+            })
+            break
 
 
 # ===== 侧边栏 =====
@@ -115,7 +132,7 @@ with st.sidebar:
 
     page = st.radio(
         "导航",
-        ["📋 首页概览", "📤 上传课件", "💬 AI 问答", "📅 复习计划", "📝 模拟考试", "📚 我的课程", "🗺️ 知识地图", "📊 学习进度", "📝 错题本"],
+        ["📋 首页概览", "📚 我的课程", "💬 AI 问答", "📅 复习计划", "📝 模拟考试", "🗺️ 知识地图", "📊 学习进度", "📝 错题本"],
         label_visibility="collapsed",
     )
 
@@ -140,11 +157,12 @@ if page == "📋 首页概览":
 
     # 统计卡片
     stats = st.session_state.learning_stats
+    total_files = sum(len(c.get("files", [])) for c in st.session_state.courses)
     st.markdown(f"""
     <div class="card-row">
         <div class="stat-card">
             <div class="value">{len(st.session_state.courses)}</div>
-            <div class="label">已导入课程</div>
+            <div class="label">已创建课程</div>
         </div>
         <div class="stat-card green">
             <div class="value">{stats['completed_chapters']}/{stats['total_chapters']}</div>
@@ -175,12 +193,12 @@ if page == "📋 首页概览":
     st.subheader("📖 最近课程")
     if st.session_state.courses:
         for c in st.session_state.courses[:3]:
-            emoji = {"ready": "✅", "processing": "⏳", "error": "❌"}
+            fc = len(c.get("files", []))
             st.markdown(f"""
             <div class="course-card">
-                <strong style="font-size:17px">{emoji.get(c['status'], '❓')} {c['name']}</strong><br>
+                <strong style="font-size:17px">📚 {c['name']}</strong><br>
                 <span style="color:#888;font-size:13px">
-                    {c['file_count']} 个课件 · {c['chapter_count']} 个章节 · 上传于 {c['upload_date']}
+                    {fc} 个课件 · 创建于 {c['created_date']}
                 </span>
             </div>
             """, unsafe_allow_html=True)
@@ -188,54 +206,79 @@ if page == "📋 首页概览":
         st.info("还没有课程，去「上传课件」开始吧！")
 
 
-elif page == "📤 上传课件":
-    st.title("📤 上传课件")
-    st.caption("支持 PowerPoint (.pptx) 和 PDF (.pdf) 格式，单文件最大 50MB")
+elif page == "📚 我的课程":
+    st.title("📚 我的课程")
+    st.caption(f"共 {len(st.session_state.courses)} 门课程")
 
-    uploaded_files = st.file_uploader(
-        "拖拽文件到此处或点击选择",
-        type=["pptx", "pdf"],
-        accept_multiple_files=True,
-        help="支持 .pptx 和 .pdf 格式",
-    )
-
-    if uploaded_files:
-        st.subheader("待上传文件")
-        for f in uploaded_files:
-            size_mb = f.size / (1024 * 1024)
-            st.markdown(f"""
-            <div style="padding:8px 16px;border-radius:8px;background:#f5f6fa;margin:4px 0">
-                📄 <strong>{f.name}</strong> <span style="color:#888;float:right">{size_mb:.1f} MB</span>
-            </div>
-            """, unsafe_allow_html=True)
-
-        course_name = st.text_input("课程名称", value=uploaded_files[0].name.rsplit(".", 1)[0], placeholder="例如：高等数学")
-        if st.button("开始上传并解析", type="primary", use_container_width=True):
-            if not course_name.strip():
-                st.error("请输入课程名称")
-            else:
-                progress_bar = st.progress(0)
-                for pct, msg in [(0.15, "上传中..."), (0.4, "解析文本..."), (0.65, "识别图片..."), (0.85, "构建知识库..."), (1.0, "完成！")]:
-                    time.sleep(0.3)
-                    progress_bar.progress(pct, text=msg)
-                add_course(course_name, len(uploaded_files))
-                st.success(f"「{course_name}」导入成功！")
-                st.info("前往「我的课程」查看")
-    else:
-        st.divider()
-        st.markdown("#### 📋 使用说明")
-        st.markdown("1. 点击上方区域选择课件文件\n2. 支持同时上传多个文件\n3. 输入课程名称后点击上传")
-        st.divider()
-        with st.expander("💡 没有课件？快速添加演示课程"):
-            c1, c2 = st.columns(2)
-            with c1:
-                demo_name = st.text_input("课程名称", value="示例课程", key="demo_name")
-            with c2:
-                demo_count = st.slider("课件数量", 1, 30, 8)
-            if st.button("添加演示课程", use_container_width=True):
-                add_course(demo_name, demo_count)
-                st.success(f"已添加「{demo_name}」")
+    # 新建课程
+    with st.expander("➕ 创建新课程"):
+        c1, c2 = st.columns(2)
+        with c1:
+            new_name = st.text_input("课程名称", placeholder="例如：高等数学", key="new_course_name")
+        with c2:
+            new_exam = st.date_input("考试日期", value=datetime.date.today() + datetime.timedelta(days=14), key="new_exam_date")
+        if st.button("创建课程", type="primary", use_container_width=True):
+            if new_name.strip():
+                cid = add_course(new_name.strip())
+                st.session_state.courses[0]["exam_date"] = new_exam.isoformat()
+                st.success(f"「{new_name}」创建成功！")
                 st.rerun()
+            else:
+                st.error("请输入课程名称")
+
+    if not st.session_state.courses:
+        st.info("还没有课程，点击上方「创建新课程」开始吧！")
+    else:
+        # 课程列表 — 点击进入详情
+        for course in st.session_state.courses:
+            fc = len(course.get("files", []))
+            with st.container(border=True):
+                c1, c2, c3 = st.columns([3, 1, 1])
+                with c1:
+                    st.markdown(f"### 📚 {course['name']}")
+                    st.caption(f"创建于 {course['created_date']} · 考试 {course.get('exam_date', '未设置')} · {fc} 个课件")
+                with c2:
+                    if st.button("📂 进入课程", key=f"enter_{course['id']}", use_container_width=True):
+                        st.session_state.current_course_id = course["id"]
+                        st.rerun()
+                with c3:
+                    if st.button("🗑️ 删除", key=f"del_{course['id']}", use_container_width=True):
+                        st.session_state.courses = [c for c in st.session_state.courses if c["id"] != course["id"]]
+                        if st.session_state.current_course_id == course["id"]:
+                            st.session_state.current_course_id = None
+                        st.rerun()
+
+        # ===== 课程详情（选中课程时显示）=====
+        if st.session_state.current_course_id:
+            cur = next((c for c in st.session_state.courses if c["id"] == st.session_state.current_course_id), None)
+            if cur:
+                st.divider()
+                st.subheader(f"📂 {cur['name']} — 课程详情")
+
+                # 上传课件到当前课程
+                uploaded_files = st.file_uploader(
+                    f"上传课件到「{cur['name']}」",
+                    type=["pptx", "pdf"],
+                    accept_multiple_files=True,
+                    key=f"upload_{cur['id']}",
+                )
+                if uploaded_files:
+                    for f in uploaded_files:
+                        add_file_to_course(cur["id"], f.name, f.size / (1024 * 1024))
+                    st.success(f"已添加 {len(uploaded_files)} 个课件到「{cur['name']}」")
+                    st.rerun()
+
+                # 已上传课件列表
+                if cur["files"]:
+                    st.markdown("**已上传课件：**")
+                    for f in cur["files"]:
+                        st.markdown(f"- 📄 {f['name']} ({f['size_mb']} MB) — {f['upload_date']}")
+                else:
+                    st.info("暂无课件，请上传。")
+
+                if st.button("✕ 关闭课程详情", use_container_width=True):
+                    st.session_state.current_course_id = None
+                    st.rerun()
 
 
 elif page == "💬 AI 问答":
