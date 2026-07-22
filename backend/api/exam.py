@@ -16,7 +16,7 @@ class GradeRequest(BaseModel):
 
 
 @router.post("/exam/generate")
-async def generate_exam(request: GenerateRequest):
+async def generate_exam(request: GenerateRequest) -> dict:
     """生成模拟试卷"""
     from agents.examiner_agent import get_examiner_agent
 
@@ -25,7 +25,7 @@ async def generate_exam(request: GenerateRequest):
 
 
 @router.post("/exam/grade")
-async def grade_exam(request: GradeRequest):
+async def grade_exam(request: GradeRequest) -> dict:
     """批改试卷"""
     from agents.examiner_agent import get_examiner_agent
 

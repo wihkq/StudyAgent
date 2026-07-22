@@ -12,7 +12,7 @@ class PlanRequest(BaseModel):
 
 
 @router.post("/plan")
-async def create_plan(request: PlanRequest):
+async def create_plan(request: PlanRequest) -> dict:
     """生成个性化复习计划"""
     from agents.planner_agent import get_planner_agent
 

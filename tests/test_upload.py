@@ -96,7 +96,7 @@ class TestUploadValidation:
             files=[_make_file("notes.txt", b"hello")],
         )
         assert response.status_code == 400
-        detail = response.json()["detail"]
+        detail = response.json()
         assert detail["error_code"] == "UNSUPPORTED_FORMAT"
 
     def test_reject_no_extension(self):
@@ -105,7 +105,7 @@ class TestUploadValidation:
             files=[_make_file("noext", b"data")],
         )
         assert response.status_code == 400
-        assert response.json()["detail"]["error_code"] == "UNSUPPORTED_FORMAT"
+        assert response.json()["error_code"] == "UNSUPPORTED_FORMAT"
 
     def test_reject_empty_file(self):
         response = client.post(
@@ -113,7 +113,7 @@ class TestUploadValidation:
             files=[_make_file("empty.pptx", b"")],
         )
         assert response.status_code == 400
-        assert response.json()["detail"]["error_code"] == "EMPTY_FILE"
+        assert response.json()["error_code"] == "EMPTY_FILE"
 
     def test_reject_oversized_file(self):
         big = b"x" * (51 * 1024 * 1024)  # 51MB
@@ -122,7 +122,7 @@ class TestUploadValidation:
             files=[_make_file("big.pptx", big)],
         )
         assert response.status_code == 413
-        assert response.json()["detail"]["error_code"] == "FILE_TOO_LARGE"
+        assert response.json()["error_code"] == "FILE_TOO_LARGE"
 
     def test_missing_file_returns_422(self):
         response = client.post("/api/v1/upload")
@@ -135,7 +135,7 @@ class TestUploadValidation:
             files=[_make_file("fake.pptx", b"this is not a pptx file")],
         )
         assert response.status_code == 400
-        assert response.json()["detail"]["error_code"] == "INVALID_FILE_CONTENT"
+        assert response.json()["error_code"] == "INVALID_FILE_CONTENT"
 
 
 class TestUploadIdempotency:

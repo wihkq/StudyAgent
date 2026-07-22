@@ -1,9 +1,9 @@
 """StudyAgent Backend - FastAPI 应用入口"""
 from fastapi import FastAPI, Request
-from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend.api import router as api_router
 
@@ -14,18 +14,18 @@ app = FastAPI(
 )
 
 # CORS（开发阶段允许所有来源，生产需收紧）
-# TODO: 生产环境替换 allow_origins 为具体域名
+# TODO: 生产环境替换 allow_origins 为具体域名，并将 allow_credentials 改为 True
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # 统一校验错误格式为 {error_code, error_message, details}
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    """将 Pydantic 422 转为与业务错误一致的格式"""
+    """将 Pydantic 422 转为统一格式"""
     errors = exc.errors()
     return JSONResponse(
         status_code=422,
@@ -39,7 +39,16 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         },
     )
 
+
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """将 HTTPException 的 detail dict 提升到顶层"""
+    if isinstance(exc.detail, dict):
+        return JSONResponse(status_code=exc.status_code, content=exc.detail)
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
 
 # 注册 API 路由
 app.include_router(api_router, prefix="/api/v1")

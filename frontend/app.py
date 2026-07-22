@@ -58,7 +58,7 @@ with st.sidebar:
     st.markdown("---")
     page = st.radio(
         "导航",
-        ["🏠 首页 Dashboard", "📤 上传资料", "📚 课程列表", "📊 学习进度"],
+        ["🏠 首页 Dashboard", "📤 上传资料", "📚 课程列表", "🗺️ 知识地图", "📊 学习进度", "📝 错题分析"],
         label_visibility="collapsed",
     )
     st.markdown("---")
@@ -223,6 +223,23 @@ elif page == "📚 课程列表":
             st.rerun()
 
 
+elif page == "🗺️ 知识地图":
+    st.title("🗺️ 知识地图")
+    st.markdown("### 课程结构总览")
+    chapters = [
+        {"title": "第一章", "importance": 3, "pages": [1, 2]},
+        {"title": "第二章", "importance": 5, "pages": [3, 4, 5]},
+        {"title": "第三章", "importance": 4, "pages": [6, 7]},
+        {"title": "第四章", "importance": 5, "pages": [8, 9]},
+    ]
+    for ch in chapters:
+        stars = "⭐" * ch["importance"]
+        with st.container(border=True):
+            st.markdown(f"### {stars} {ch['title']}")
+            st.caption(f"页码: {', '.join(str(p) for p in ch['pages'])}")
+    st.caption("上传课程资料后生成真实知识地图。")
+
+
 elif page == "📊 学习进度":
     # ---------- 学习进度 ----------
     st.title("📊 学习进度")
@@ -276,3 +293,30 @@ elif page == "📊 学习进度":
                 "questions_answered": 0,
             }
             st.rerun()
+
+
+elif page == "📝 错题分析":
+    st.title("📝 错题分析")
+    st.markdown("### 薄弱知识点识别与复习建议")
+    if "error_log" not in st.session_state:
+        st.session_state.error_log = [
+            {"question": "示例问题 A？", "your_answer": "答案A1", "correct_answer": "正确答案A", "weak_point": "知识点A"},
+            {"question": "示例问题 B？", "your_answer": "答案B1", "correct_answer": "正确答案B", "weak_point": "知识点A"},
+            {"question": "示例问题 C？", "your_answer": "答案C1", "correct_answer": "正确答案C", "weak_point": "知识点B"},
+        ]
+    errs = st.session_state.error_log
+    if errs:
+        from collections import Counter
+        wc = Counter(e["weak_point"] for e in errs)
+        for pt, cnt in wc.most_common():
+            st.markdown(f"**{pt}**: {cnt}题 ({cnt/len(errs):.0%})")
+            st.progress(cnt/len(errs))
+        st.markdown("---")
+        for i, e in enumerate(errs):
+            with st.expander(f"错题{i+1}: {e['question']}"):
+                st.markdown(f"你的: {e['your_answer']}  |  正确: {e['correct_answer']}")
+        st.markdown("---")
+        for pt, _ in wc.most_common(2):
+            st.warning(f"建议重点复习「**{pt}**」")
+    else:
+        st.info("暂无错题。参加模拟考试后自动收集。")

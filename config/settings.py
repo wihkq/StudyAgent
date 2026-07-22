@@ -25,11 +25,11 @@ class Settings(BaseModel):
         default_factory=lambda: os.getenv("OCR_MODE", "mock")
     )  # mock | paddle
 
-    # 服务配置
+    # 服务配置（预留：后续接入 uvicorn/部署时使用）
     host: str = Field(default_factory=lambda: os.getenv("HOST", "0.0.0.0"))
     port: int = Field(default_factory=lambda: int(os.getenv("PORT", "8000")))
 
-    # 数据库
+    # 数据库（预留：后续接入 SQLAlchemy 时使用）
     database_url: str = Field(
         default_factory=lambda: os.getenv("DATABASE_URL", "sqlite:///./studyagent.db")
     )
