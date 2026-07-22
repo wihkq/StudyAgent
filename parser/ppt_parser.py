@@ -1,10 +1,12 @@
-"""ParserAdapter - PPT 解析接口"""
+"""PPT 解析器"""
 # TODO: Issue-004 实现
 
+from parser import ParserAdapter
 
-class ParserAdapter:
-    """文档解析抽象基类"""
 
-    async def parse(self, file_path: str) -> list[dict]:
-        """解析文档，返回 [{page, title, content}, ...]"""
-        raise NotImplementedError
+class PptxParser(ParserAdapter):
+    """PPT 文档解析实现"""
+    pass
+
+
+__all__ = ["PptxParser"]

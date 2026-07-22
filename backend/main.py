@@ -11,7 +11,8 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# CORS（开发阶段允许所有来源）
+# CORS（开发阶段允许所有来源，生产需收紧）
+# TODO: 生产环境替换 allow_origins 为具体域名
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
