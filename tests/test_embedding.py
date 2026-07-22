@@ -5,6 +5,7 @@ import pytest
 
 from knowledge.embedding import (
     EmbeddingProvider,
+    KimiEmbedding,
     MockEmbedding,
     get_embedding,
 )
@@ -68,3 +69,18 @@ class TestGetEmbedding:
     def test_default_returns_mock_embedding(self):
         emb = get_embedding()
         assert isinstance(emb, MockEmbedding)
+
+
+class TestKimiEmbedding:
+    """KimiEmbedding 接口"""
+
+    def test_kimi_requires_api_key(self):
+        """无 API Key 时 embed 应抛异常"""
+        kimi = KimiEmbedding(api_key="")
+        with pytest.raises(ValueError, match="API Key"):
+            asyncio.run(kimi.embed_single("test"))
+
+    def test_kimi_has_correct_defaults(self):
+        kimi = KimiEmbedding(api_key="sk-test")
+        assert kimi.base_url == "https://api.moonshot.cn/v1"
+        assert kimi.model == "moonshot-v1-8k"

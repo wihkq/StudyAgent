@@ -1,6 +1,6 @@
 """EmbeddingProvider - 文本向量化接口
 
-可替换实现：MockEmbedding / OpenAIEmbedding / BGEEmbedding
+可替换实现：MockEmbedding / KimiEmbedding
 """
 import hashlib
 import logging
@@ -38,27 +38,71 @@ class MockEmbedding(EmbeddingProvider):
         digest = hashlib.shake_256(text.encode("utf-8")).digest(self.dim * 2)
         values = []
         for i in range(0, len(digest), 2):
-            # 两个字节 → 0~1 之间的浮点数
             val = int.from_bytes(digest[i:i+2], "big") / 65535.0
             values.append(round(val, 6))
-        # 补齐不足 dim 的情况
         while len(values) < self.dim:
             values.append(0.0)
         return values[:self.dim]
 
 
+class KimiEmbedding(EmbeddingProvider):
+    """月之暗面 Kimi Embedding API
+
+    兼容 OpenAI 格式，endpoint: /v1/embeddings
+    """
+
+    def __init__(
+        self,
+        api_key: str = "",
+        base_url: str = "https://api.moonshot.cn/v1",
+        model: str = "moonshot-v1-8k",
+    ):
+        self.api_key = api_key
+        self.base_url = base_url.rstrip("/")
+        self.model = model
+
+    async def embed(self, texts: list[str]) -> list[list[float]]:
+        if not self.api_key:
+            raise ValueError("Kimi API Key 未配置，请设置 LLM_API_KEY 环境变量")
+
+        import httpx
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{self.base_url}/embeddings",
+                headers={"Authorization": f"Bearer {self.api_key}"},
+                json={"model": self.model, "input": texts},
+                timeout=30,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            return [item["embedding"] for item in data["data"]]
+
+    async def embed_single(self, text: str) -> list[float]:
+        results = await self.embed([text])
+        return results[0]
+
+
 def get_embedding() -> EmbeddingProvider:
-    """工厂函数：根据 LLM_MODE 返回 Embedding 实例"""
+    """工厂函数：根据 LLM_MODE 返回 Embedding 实例
+
+    模式:
+      mock   — MockEmbedding（默认，免费本地）
+      kimi   — KimiEmbedding（月之暗面 API）
+    """
     mode = os.getenv("LLM_MODE", "mock")
+    api_key = os.getenv("LLM_API_KEY", "")
+
     if mode == "mock":
         return MockEmbedding()
-    elif mode in ("openai_compatible", "live"):
-        # OpenAI Embedding 占位 — 真实集成留到后续
-        logger.warning("LLM_MODE=%s 已配置，但 OpenAI Embedding 尚未集成，回退 MockEmbedding", mode)
-        return MockEmbedding()
+    elif mode == "kimi":
+        if api_key:
+            return KimiEmbedding(api_key=api_key)
+        else:
+            logger.warning("LLM_MODE=kimi 但 LLM_API_KEY 未配置，回退 MockEmbedding")
+            return MockEmbedding()
     else:
         logger.warning("未知 LLM_MODE=%s，回退 MockEmbedding", mode)
         return MockEmbedding()
 
 
-__all__ = ["EmbeddingProvider", "MockEmbedding", "get_embedding"]
+__all__ = ["EmbeddingProvider", "MockEmbedding", "KimiEmbedding", "get_embedding"]
