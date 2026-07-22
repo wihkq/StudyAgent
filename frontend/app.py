@@ -1,5 +1,6 @@
 """StudyAgent Frontend - Streamlit 入口"""
 import datetime
+import random
 import time
 import streamlit as st
 
@@ -142,7 +143,7 @@ elif page == "📤 上传资料":
         # 课程名输入
         course_name = st.text_input(
             "课程名称",
-            value=uploaded_files[0].name.rsplit(".", 1)[0] if uploaded_files else "",
+            value=uploaded_files[0].name.rsplit(".", 1)[0],
             placeholder="例如：高等数学",
         )
 
@@ -246,7 +247,6 @@ elif page == "📊 学习进度":
     today = datetime.date.today()
     activity_cols = st.columns(7)
     day_names = ["一", "二", "三", "四", "五", "六", "日"]
-    import random
     random.seed(42)
     for i, col in enumerate(activity_cols):
         day = today - datetime.timedelta(days=6 - i)
