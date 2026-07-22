@@ -86,9 +86,10 @@ try:
 
         def __init__(self, dim: int = 128):
             self.dim = dim
-            self._index = faiss.IndexFlatIP(dim)  # 内积 = 归一化后等价余弦相似度
+            self._index = faiss.IndexFlatIP(dim)
             self._id_list: list[str] = []
             self._metadata: dict[str, dict] = {}
+            self._deleted_ids: set[str] = set()
 
         async def add(self, vectors: list[list[float]], metadata: list[dict]) -> list[str]:
             matrix = np.array(vectors, dtype=np.float32)
@@ -118,6 +119,8 @@ try:
             for score, idx in zip(scores[0], indices[0]):
                 if idx >= 0 and idx < len(self._id_list):
                     chunk_id = self._id_list[idx]
+                    if chunk_id in self._deleted_ids:
+                        continue
                     results.append({
                         "id": chunk_id,
                         "metadata": self._metadata[chunk_id],
@@ -126,8 +129,9 @@ try:
             return results
 
         async def delete(self, ids: list[str]) -> None:
-            # FAISS 不支持删除，重建索引
-            pass
+            # FAISS IndexFlatIP 不支持单条删除，用逻辑删除集合在检索时过滤
+            self._deleted_ids.update(ids)
+            logger.info("FAISS 逻辑删除: %d 条向量已标记", len(ids))
 
 except ImportError:
     FAISSVectorStore = None  # type: ignore
