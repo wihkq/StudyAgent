@@ -5,7 +5,6 @@
 """
 import logging
 import re
-from collections import Counter
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +145,7 @@ def get_document_agent() -> DocumentAgent:
     from config.settings import Settings
 
     mode = Settings().llm_mode
-    if mode in ("mock",):
+    if mode == "mock":
         return MockDocumentAgent()
     elif mode == "kimi":
         # Kimi LLM Agent 占位 — 后续 Issue 实现
