@@ -58,7 +58,7 @@ class PptxParser(ParserAdapter):
                     ocr_text = await self.ocr.recognize(image_data)
                     if ocr_text.strip():
                         image_texts.append(ocr_text.strip())
-                except Exception:
+                except (OSError, AttributeError):
                     # 单张图片 OCR 失败不阻塞整体解析
                     pass
 

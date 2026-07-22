@@ -2,6 +2,10 @@
 
 可替换实现：MockOCR / PaddleOCR
 """
+import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class OCRProvider:
@@ -32,15 +36,14 @@ class MockOCR(OCRProvider):
 
 def get_ocr() -> OCRProvider:
     """工厂函数：根据全局配置返回 OCR 实例"""
-    import os
-
     ocr_mode = os.getenv("OCR_MODE", "mock")
     if ocr_mode == "mock":
         return MockOCR()
     elif ocr_mode == "paddle":
-        # PaddleOCR 占位 — 真实集成留到后续，暂回退 Mock
+        logger.warning("OCR_MODE=paddle 配置已设置，但 PaddleOCR 尚未集成，回退 MockOCR")
         return MockOCR()
     else:
+        logger.warning("未知 OCR_MODE=%s，回退 MockOCR", ocr_mode)
         return MockOCR()
 
 
