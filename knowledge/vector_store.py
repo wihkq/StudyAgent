@@ -3,7 +3,6 @@
 可替换实现：MockVectorStore / FAISSVectorStore
 """
 import logging
-import os
 
 import numpy as np
 
@@ -139,7 +138,9 @@ except ImportError:
 
 def get_vector_store(dim: int = 128) -> VectorStoreProvider:
     """工厂函数：根据 VECTOR_MODE 返回向量存储实例"""
-    mode = os.getenv("VECTOR_MODE", "mock_faiss")
+    from config.settings import Settings
+
+    mode = Settings().vector_mode
 
     if mode == "mock_faiss":
         return MockVectorStore(dim=dim)

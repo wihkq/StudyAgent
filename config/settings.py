@@ -21,6 +21,9 @@ class Settings(BaseModel):
     vector_mode: str = Field(
         default_factory=lambda: os.getenv("VECTOR_MODE", "mock_faiss")
     )  # mock_faiss | faiss
+    ocr_mode: str = Field(
+        default_factory=lambda: os.getenv("OCR_MODE", "mock")
+    )  # mock | paddle
 
     # 服务配置
     host: str = Field(default_factory=lambda: os.getenv("HOST", "0.0.0.0"))

@@ -4,7 +4,6 @@
 """
 import hashlib
 import logging
-import os
 
 logger = logging.getLogger(__name__)
 
@@ -89,8 +88,11 @@ def get_embedding() -> EmbeddingProvider:
       mock   — MockEmbedding（默认，免费本地）
       kimi   — KimiEmbedding（月之暗面 API）
     """
-    mode = os.getenv("LLM_MODE", "mock")
-    api_key = os.getenv("LLM_API_KEY", "")
+    from config.settings import Settings
+
+    s = Settings()
+    mode = s.llm_mode
+    api_key = s.llm_api_key
 
     if mode == "mock":
         return MockEmbedding()

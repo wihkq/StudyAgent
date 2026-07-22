@@ -112,22 +112,28 @@ class TestGetParserFactory:
     def test_mock_mode_returns_mock_parser(self):
         import os
         os.environ["PARSER_MODE"] = "mock"
-        parser = get_parser("test.pptx")
-        assert parser.__class__.__name__ == "MockParser"
-        os.environ.pop("PARSER_MODE")
+        try:
+            parser = get_parser("test.pptx")
+            assert parser.__class__.__name__ == "MockParser"
+        finally:
+            os.environ.pop("PARSER_MODE", None)
 
     def test_pptx_mode_returns_pptx_parser(self):
         import os
         os.environ["PARSER_MODE"] = "python_pptx"
-        parser = get_parser("test.pptx")
-        assert parser.__class__.__name__ == "PptxParser"
-        os.environ.pop("PARSER_MODE")
+        try:
+            parser = get_parser("test.pptx")
+            assert parser.__class__.__name__ == "PptxParser"
+        finally:
+            os.environ.pop("PARSER_MODE", None)
 
     def test_mock_parser_returns_structure(self):
         import os
         os.environ["PARSER_MODE"] = "mock"
-        parser = get_parser()
-        result = asyncio.run(parser.parse("dummy.pptx"))
-        assert len(result) == 5
-        assert all("page" in p and "title" in p and "content" in p for p in result)
-        os.environ.pop("PARSER_MODE")
+        try:
+            parser = get_parser()
+            result = asyncio.run(parser.parse("dummy.pptx"))
+            assert len(result) == 5
+            assert all("page" in p and "title" in p and "content" in p for p in result)
+        finally:
+            os.environ.pop("PARSER_MODE", None)

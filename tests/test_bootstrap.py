@@ -54,14 +54,13 @@ class TestConfig:
 
         os.environ["LLM_MODE"] = "openai_compatible"
         os.environ["PORT"] = "9999"
-
-        s = Settings()
-        assert s.llm_mode == "openai_compatible"
-        assert s.port == 9999
-
-        # 恢复默认值，避免影响其他测试
-        os.environ.pop("LLM_MODE")
-        os.environ.pop("PORT")
+        try:
+            s = Settings()
+            assert s.llm_mode == "openai_compatible"
+            assert s.port == 9999
+        finally:
+            os.environ.pop("LLM_MODE", None)
+            os.environ.pop("PORT", None)
 
 
 class TestProviderInterfaces:
