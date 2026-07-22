@@ -1,4 +1,4 @@
-"""StudyAgent Frontend - Streamlit 入口"""
+"""StudyAgent 前端 — 智能期末复习助手"""
 import datetime
 import random
 import time
@@ -6,11 +6,63 @@ import streamlit as st
 
 # ===== 页面配置 =====
 st.set_page_config(
-    page_title="StudyAgent",
+    page_title="StudyAgent · 智能复习助手",
     page_icon="📚",
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+# ===== 自定义样式 =====
+st.markdown("""
+<style>
+    /* 侧边栏 */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+    }
+    [data-testid="stSidebar"] * { color: #e0e0e0 !important; }
+    [data-testid="stSidebar"] .stRadio > div { gap: 6px; }
+    [data-testid="stSidebar"] .stRadio label {
+        padding: 10px 16px; border-radius: 10px; font-size: 15px;
+        transition: all 0.2s;
+    }
+    [data-testid="stSidebar"] .stRadio label:hover {
+        background: rgba(255,255,255,0.08);
+    }
+
+    /* 主标题 */
+    h1 { color: #1a1a2e !important; font-weight: 700 !important; }
+
+    /* 卡片区 */
+    .card-row { display: flex; gap: 16px; margin-bottom: 24px; }
+    .stat-card {
+        flex: 1; padding: 24px 20px; border-radius: 16px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; text-align: center;
+    }
+    .stat-card.green  { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+    .stat-card.orange { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .stat-card.blue   { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+    .stat-card .value { font-size: 36px; font-weight: 800; }
+    .stat-card .label { font-size: 14px; opacity: 0.85; margin-top: 4px; }
+
+    /* 课程卡片 */
+    .course-card {
+        padding: 20px 24px; border-radius: 14px; background: #fff; margin-bottom: 12px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06); border-left: 5px solid #667eea;
+        transition: transform 0.15s;
+    }
+    .course-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.12); }
+
+    /* 按钮 */
+    .stButton button {
+        border-radius: 10px !important; font-weight: 600 !important;
+        transition: all 0.2s !important;
+    }
+
+    /* 首页大标题 */
+    .hero-title { font-size: 42px; font-weight: 800; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero-sub { font-size: 18px; color: #666; margin-bottom: 32px; }
+</style>
+""", unsafe_allow_html=True)
 
 # ===== 初始化 session_state =====
 if "courses" not in st.session_state:
@@ -21,7 +73,7 @@ if "courses" not in st.session_state:
             "file_count": 8,
             "chapter_count": 5,
             "upload_date": datetime.date.today().isoformat(),
-            "status": "ready",  # ready / processing / error
+            "status": "ready",
         }
     ]
 if "learning_stats" not in st.session_state:
@@ -38,285 +90,288 @@ if "exam_date" not in st.session_state:
 
 # ===== 辅助函数 =====
 def add_course(name: str, file_count: int) -> None:
-    """添加课程到列表（Mock）"""
+    """添加课程到列表"""
     import uuid
-    new_course = {
+    st.session_state.courses.insert(0, {
         "id": f"crs-{uuid.uuid4().hex[:8]}",
         "name": name,
         "file_count": file_count,
         "chapter_count": max(1, file_count // 2),
         "upload_date": datetime.date.today().isoformat(),
         "status": "ready",
-    }
-    st.session_state.courses.insert(0, new_course)
+    })
 
 
-# ===== 侧边栏导航 =====
+# ===== 侧边栏 =====
 with st.sidebar:
-    st.image("https://img.icons8.com/color/96/books.png", width=64)
-    st.title("StudyAgent")
+    st.markdown("""
+    <div style="text-align:center;padding:16px 0 8px">
+        <div style="font-size:40px">📚</div>
+        <div style="font-size:20px;font-weight:700;color:#fff">StudyAgent</div>
+        <div style="font-size:12px;color:#aaa">智能期末复习助手</div>
+    </div>
+    """, unsafe_allow_html=True)
     st.markdown("---")
+
     page = st.radio(
         "导航",
-        ["🏠 首页 Dashboard", "📤 上传资料", "📚 课程列表", "🗺️ 知识地图", "📊 学习进度", "📝 错题分析"],
+        ["📋 首页概览", "📤 上传课件", "📚 我的课程", "🗺️ 知识地图", "📊 学习进度", "📝 错题本"],
         label_visibility="collapsed",
     )
+
     st.markdown("---")
-    # 考试倒计时
     days_left = (st.session_state.exam_date - datetime.date.today()).days
     if days_left >= 0:
-        st.metric("📅 距考试", f"{days_left} 天")
+        st.markdown(f"""
+        <div style="text-align:center;padding:12px;border-radius:12px;background:rgba(255,255,255,0.08)">
+            <div style="font-size:12px;color:#aaa">距离考试还有</div>
+            <div style="font-size:28px;font-weight:700;color:#38ef7d">{days_left} 天</div>
+        </div>
+        """, unsafe_allow_html=True)
     else:
         st.error("考试日期已过")
 
 
 # ===== 页面路由 =====
 
-if page == "🏠 首页 Dashboard":
-    # ---------- 首页 ----------
-    st.title("📚 StudyAgent Dashboard")
-    st.markdown("### 基于多模态RAG的智能期末复习助手")
+if page == "📋 首页概览":
+    st.markdown('<div class="hero-title">StudyAgent</div>', unsafe_allow_html=True)
+    st.markdown('<div class="hero-sub">基于多模态 RAG 的智能期末复习助手</div>', unsafe_allow_html=True)
 
-    # 统计卡片行
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("课程数", len(st.session_state.courses))
-    with col2:
-        stats = st.session_state.learning_stats
-        st.metric("已完成章节", f"{stats['completed_chapters']}/{stats['total_chapters']}")
-    with col3:
-        st.metric("正确率", f"{stats['correct_rate']:.0%}")
-    with col4:
-        st.metric("学习时长", f"{stats['total_study_hours']}h")
+    # 统计卡片
+    stats = st.session_state.learning_stats
+    st.markdown(f"""
+    <div class="card-row">
+        <div class="stat-card">
+            <div class="value">{len(st.session_state.courses)}</div>
+            <div class="label">已导入课程</div>
+        </div>
+        <div class="stat-card green">
+            <div class="value">{stats['completed_chapters']}/{stats['total_chapters']}</div>
+            <div class="label">已完成章节</div>
+        </div>
+        <div class="stat-card orange">
+            <div class="value">{stats['correct_rate']:.0%}</div>
+            <div class="label">答题正确率</div>
+        </div>
+        <div class="stat-card blue">
+            <div class="value">{stats['total_study_hours']}h</div>
+            <div class="label">累计学习时长</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    st.markdown("---")
-
-    # 考试日期设置
-    col_left, col_right = st.columns([1, 2])
-    with col_left:
-        new_date = st.date_input("📅 设置考试日期", value=st.session_state.exam_date)
+    # 考试日期
+    col_a, col_b = st.columns([1, 3])
+    with col_a:
+        new_date = st.date_input("📅 考试日期", value=st.session_state.exam_date)
         if new_date != st.session_state.exam_date:
             st.session_state.exam_date = new_date
             st.rerun()
 
-    # 快速入口
-    st.markdown("### 🚀 功能入口")
-    st.info("使用左侧导航栏切换：📤 上传资料 · 📚 课程列表 · 📊 学习进度")
+    st.divider()
 
     # 最近课程
-    st.markdown("### 📖 最近课程")
+    st.subheader("📖 最近课程")
     if st.session_state.courses:
         for c in st.session_state.courses[:3]:
-            status_icon = {"ready": "✅", "processing": "⏳", "error": "❌"}
-            icon = status_icon.get(c["status"], "❓")
-            st.markdown(
-                f"{icon} **{c['name']}** — {c['file_count']} 个文件, "
-                f"{c['chapter_count']} 章节 — 上传于 {c['upload_date']}"
-            )
+            emoji = {"ready": "✅", "processing": "⏳", "error": "❌"}
+            st.markdown(f"""
+            <div class="course-card">
+                <strong style="font-size:17px">{emoji.get(c['status'], '❓')} {c['name']}</strong><br>
+                <span style="color:#888;font-size:13px">
+                    {c['file_count']} 个课件 · {c['chapter_count']} 个章节 · 上传于 {c['upload_date']}
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
     else:
-        st.info("还没有课程，去上传资料开始吧！")
+        st.info("还没有课程，去「上传课件」开始吧！")
 
 
-elif page == "📤 上传资料":
-    # ---------- 上传页面 ----------
-    st.title("📤 上传课程资料")
-    st.markdown("支持 **PPT (.pptx)** 和 **PDF (.pdf)** 格式，单文件最大 50MB")
+elif page == "📤 上传课件":
+    st.title("📤 上传课件")
+    st.caption("支持 PowerPoint (.pptx) 和 PDF (.pdf) 格式，单文件最大 50MB")
 
     uploaded_files = st.file_uploader(
-        "拖拽或点击选择文件",
+        "拖拽文件到此处或点击选择",
         type=["pptx", "pdf"],
         accept_multiple_files=True,
         help="支持 .pptx 和 .pdf 格式",
     )
 
     if uploaded_files:
-        # 显示待上传文件列表
-        st.markdown("### 待上传文件")
+        st.subheader("待上传文件")
         for f in uploaded_files:
             size_mb = f.size / (1024 * 1024)
-            col_f, col_s = st.columns([4, 1])
-            with col_f:
-                st.markdown(f"📄 **{f.name}**")
-            with col_s:
-                st.caption(f"{size_mb:.1f} MB")
+            st.markdown(f"""
+            <div style="padding:8px 16px;border-radius:8px;background:#f5f6fa;margin:4px 0">
+                📄 <strong>{f.name}</strong> <span style="color:#888;float:right">{size_mb:.1f} MB</span>
+            </div>
+            """, unsafe_allow_html=True)
 
-        # 课程名输入
-        course_name = st.text_input(
-            "课程名称",
-            value=uploaded_files[0].name.rsplit(".", 1)[0],
-            placeholder="例如：高等数学",
-        )
-
-        if st.button("🚀 开始上传并解析", type="primary", use_container_width=True):
+        course_name = st.text_input("课程名称", value=uploaded_files[0].name.rsplit(".", 1)[0], placeholder="例如：高等数学")
+        if st.button("开始上传并解析", type="primary", use_container_width=True):
             if not course_name.strip():
                 st.error("请输入课程名称")
             else:
-                # Mock 上传进度
                 progress_bar = st.progress(0)
-                status_text = st.empty()
-                steps = [
-                    (0.1, "上传文件中..."),
-                    (0.4, "解析 PPT 文本..."),
-                    (0.6, "OCR 识别图片..."),
-                    (0.8, "构建知识库..."),
-                    (1.0, "完成！"),
-                ]
-                for pct, msg in steps:
-                    time.sleep(0.3)  # Mock 延迟
+                for pct, msg in [(0.15, "上传中..."), (0.4, "解析文本..."), (0.65, "识别图片..."), (0.85, "构建知识库..."), (1.0, "完成！")]:
+                    time.sleep(0.3)
                     progress_bar.progress(pct, text=msg)
-
                 add_course(course_name, len(uploaded_files))
-                st.success(f"✅ 「{course_name}」上传解析完成！")
-                st.info("转到「课程列表」查看")
+                st.success(f"「{course_name}」导入成功！")
+                st.info("前往「我的课程」查看")
     else:
-        # 空状态引导
-        st.markdown("---")
-        st.markdown("""
-        ### 📋 使用说明
-        1. 点击上方区域选择文件，或拖拽文件到此处
-        2. 支持同时上传多个文件（同一课程）
-        3. 输入课程名称后点击上传
-        4. 系统会自动解析内容并构建知识库
-        """)
-        st.markdown("---")
-        # 演示用 Mock 快速添加
-        with st.expander("💡 没有 PPT？点这里添加演示课程"):
-            demo_name = st.text_input("课程名称", value="示例课程", key="demo_course")
-            demo_count = st.slider("模拟文件数", 1, 20, 8)
-            if st.button("添加演示课程"):
+        st.divider()
+        st.markdown("#### 📋 使用说明")
+        st.markdown("1. 点击上方区域选择课件文件\n2. 支持同时上传多个文件\n3. 输入课程名称后点击上传")
+        st.divider()
+        with st.expander("💡 没有课件？快速添加演示课程"):
+            c1, c2 = st.columns(2)
+            with c1:
+                demo_name = st.text_input("课程名称", value="示例课程", key="demo_name")
+            with c2:
+                demo_count = st.slider("课件数量", 1, 30, 8)
+            if st.button("添加演示课程", use_container_width=True):
                 add_course(demo_name, demo_count)
-                st.success(f"已添加演示课程「{demo_name}」")
+                st.success(f"已添加「{demo_name}」")
                 st.rerun()
 
 
-elif page == "📚 课程列表":
-    # ---------- 课程列表 ----------
-    st.title("📚 课程列表")
-    st.markdown(f"共 **{len(st.session_state.courses)}** 门课程")
+elif page == "📚 我的课程":
+    st.title("📚 我的课程")
+    st.caption(f"共 {len(st.session_state.courses)} 门课程")
 
     if not st.session_state.courses:
-        st.info("还没有课程，去「上传资料」添加吧！")
+        st.info("还没有课程，去「上传课件」添加吧！")
     else:
         for course in st.session_state.courses:
-            with st.container(border=True):
-                col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
-                with col1:
-                    status = {"ready": "✅ 已就绪", "processing": "⏳ 解析中", "error": "❌ 失败"}
-                    st.markdown(f"### {course['name']}")
-                    st.caption(
-                        f"{status.get(course['status'], course['status'])} · "
-                        f"{course['file_count']} 个文件 · "
-                        f"{course['chapter_count']} 个章节"
-                    )
-                with col2:
-                    st.metric("文件", course["file_count"])
-                with col3:
-                    st.metric("章节", course["chapter_count"])
-                with col4:
-                    st.caption(f"上传于\n{course['upload_date']}")
-                    if st.button("查看详情", key=f"detail_{course['id']}"):
-                        st.info("课程详情页将在后续版本中实现")
+            s = {"ready": ("✅", "已就绪"), "processing": ("⏳", "处理中"), "error": ("❌", "出错")}
+            icon, stext = s.get(course["status"], ("❓", course["status"]))
+            st.markdown(f"""
+            <div class="course-card">
+                <table style="width:100%">
+                    <tr>
+                        <td style="width:60%">
+                            <span style="font-size:18px;font-weight:600">{icon} {course['name']}</span><br>
+                            <span style="color:#888;font-size:13px">{stext} · {course['file_count']} 个课件 · {course['chapter_count']} 个章节</span>
+                        </td>
+                        <td style="text-align:center;font-size:22px;font-weight:700">{course['file_count']}<br><span style="font-size:12px;color:#888">课件</span></td>
+                        <td style="text-align:center;font-size:22px;font-weight:700">{course['chapter_count']}<br><span style="font-size:12px;color:#888">章节</span></td>
+                        <td style="text-align:right;color:#888;font-size:13px">{course['upload_date']}</td>
+                    </tr>
+                </table>
+            </div>
+            """, unsafe_allow_html=True)
 
-        st.markdown("---")
-        if st.button("🗑️ 清空所有课程（演示用）"):
+        st.divider()
+        if st.button("🗑️ 清空所有课程"):
             st.session_state.courses = []
             st.rerun()
 
 
 elif page == "🗺️ 知识地图":
     st.title("🗺️ 知识地图")
-    st.markdown("### 课程结构总览")
+    st.caption("课程结构一目了然，⭐ 越多代表越重要")
+
     chapters = [
-        {"title": "第一章", "importance": 3, "pages": [1, 2]},
-        {"title": "第二章", "importance": 5, "pages": [3, 4, 5]},
-        {"title": "第三章", "importance": 4, "pages": [6, 7]},
-        {"title": "第四章", "importance": 5, "pages": [8, 9]},
+        {"t": "第一章", "i": 3, "p": [1, 2]},
+        {"t": "第二章", "i": 5, "p": [3, 4, 5]},
+        {"t": "第三章", "i": 4, "p": [6, 7]},
+        {"t": "第四章", "i": 5, "p": [8, 9]},
     ]
     for ch in chapters:
-        stars = "⭐" * ch["importance"]
-        with st.container(border=True):
-            st.markdown(f"### {stars} {ch['title']}")
-            st.caption(f"页码: {', '.join(str(p) for p in ch['pages'])}")
-    st.caption("上传课程资料后生成真实知识地图。")
+        bar = "█" * ch["i"] + "░" * (5 - ch["i"])
+        st.markdown(f"""
+        <div class="course-card" style="border-left-color: {'#f5576c' if ch['i']>=5 else '#4facfe' if ch['i']>=4 else '#667eea'}">
+            <strong>{'⭐' * ch['i']} {ch['t']}</strong>
+            <span style="float:right;color:#888;font-size:13px">第 {', '.join(str(p) for p in ch['p'])} 页</span>
+            <div style="margin-top:6px;font-family:monospace;color:#aaa">{bar} {ch['i']}/5</div>
+        </div>
+        """, unsafe_allow_html=True)
+    st.caption("💡 上传真实课件后，系统将自动生成课程知识地图。")
 
 
 elif page == "📊 学习进度":
-    # ---------- 学习进度 ----------
     st.title("📊 学习进度")
     stats = st.session_state.learning_stats
 
-    # 进度仪表盘
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        chapter_pct = stats["completed_chapters"] / stats["total_chapters"]
-        st.metric("章节完成率", f"{chapter_pct:.0%}")
-        st.progress(chapter_pct, text=f"{stats['completed_chapters']}/{stats['total_chapters']} 章")
-    with col2:
-        st.metric("答题正确率", f"{stats['correct_rate']:.0%}")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        pct = stats["completed_chapters"] / stats["total_chapters"]
+        st.metric("📖 章节完成率", f"{pct:.0%}")
+        st.progress(pct, text=f"{stats['completed_chapters']}/{stats['total_chapters']} 章")
+    with c2:
+        st.metric("🎯 答题正确率", f"{stats['correct_rate']:.0%}")
         st.progress(stats["correct_rate"], text=f"{stats['questions_answered']} 题已答")
-    with col3:
-        st.metric("累计学习", f"{stats['total_study_hours']} 小时")
+    with c3:
+        st.metric("⏱️ 累计学习", f"{stats['total_study_hours']} 小时")
 
-    st.markdown("---")
-
-    # 学习日历热力图（Mock 占位）
-    st.markdown("### 📅 最近学习活动")
+    st.divider()
+    st.subheader("📅 最近七天学习记录")
     today = datetime.date.today()
-    activity_cols = st.columns(7)
-    day_names = ["一", "二", "三", "四", "五", "六", "日"]
+    cols = st.columns(7)
+    day_names = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
     random.seed(42)
-    for i, col in enumerate(activity_cols):
+    for i, col in enumerate(cols):
         day = today - datetime.timedelta(days=6 - i)
-        hours = round(random.uniform(0, 3), 1)
+        h = round(random.uniform(0, 3.5), 1)
+        bar = "🟦" * max(1, int(h))
         with col:
-            st.metric(f"周{day_names[day.weekday()]}", f"{hours}h")
-            color = "🟩" if hours > 1.5 else ("🟨" if hours > 0.5 else "🟥")
-            st.markdown(f"{color}" * max(1, int(hours)))
+            st.markdown(f"<div style='text-align:center;font-size:12px;color:#888'>{day_names[day.weekday()]}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align:center;font-size:20px;font-weight:700'>{h}h</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align:center'>{bar}</div>", unsafe_allow_html=True)
 
-    st.markdown("---")
-
-    # Mock 数据更新（演示用）
-    with st.expander("🔧 模拟学习数据（演示用）"):
-        if st.button("模拟学习 1 小时"):
+    st.divider()
+    with st.expander("🔧 模拟数据（演示用）"):
+        if st.button("模拟学习 1 小时", use_container_width=True):
             stats["total_study_hours"] += 1
             if stats["completed_chapters"] < stats["total_chapters"]:
                 stats["completed_chapters"] += 1
             stats["questions_answered"] += 5
             stats["correct_rate"] = min(1.0, stats["correct_rate"] + 0.02)
             st.rerun()
-        if st.button("重置学习数据"):
-            st.session_state.learning_stats = {
-                "total_study_hours": 0.0,
-                "completed_chapters": 0,
-                "total_chapters": 8,
-                "correct_rate": 0.0,
-                "questions_answered": 0,
-            }
+        if st.button("重置全部数据", use_container_width=True):
+            st.session_state.learning_stats = {"total_study_hours": 0.0, "completed_chapters": 0, "total_chapters": 8, "correct_rate": 0.0, "questions_answered": 0}
             st.rerun()
 
 
-elif page == "📝 错题分析":
-    st.title("📝 错题分析")
-    st.markdown("### 薄弱知识点识别与复习建议")
+elif page == "📝 错题本":
+    st.title("📝 错题本")
+    st.caption("自动收集错题，精准定位薄弱知识点")
+
     if "error_log" not in st.session_state:
         st.session_state.error_log = [
-            {"question": "示例问题 A？", "your_answer": "答案A1", "correct_answer": "正确答案A", "weak_point": "知识点A"},
-            {"question": "示例问题 B？", "your_answer": "答案B1", "correct_answer": "正确答案B", "weak_point": "知识点A"},
-            {"question": "示例问题 C？", "your_answer": "答案C1", "correct_answer": "正确答案C", "weak_point": "知识点B"},
+            {"q": "二进制与十进制的转换方法？", "a": "除以2取余", "c": "除2取余，逆向排列", "w": "进制转换"},
+            {"q": "指令流水线的五个阶段？", "a": "3个阶段", "c": "取指·译码·执行·访存·写回", "w": "指令流水线"},
+            {"q": "Cache 的工作原理？", "a": "直接访问", "c": "利用局部性原理缓存频繁访问数据", "w": "Cache 机制"},
         ]
+
     errs = st.session_state.error_log
     if errs:
         from collections import Counter
-        wc = Counter(e["weak_point"] for e in errs)
+        wc = Counter(e["w"] for e in errs)
+        st.subheader("🔍 薄弱知识点分布")
         for pt, cnt in wc.most_common():
-            st.markdown(f"**{pt}**: {cnt}题 ({cnt/len(errs):.0%})")
-            st.progress(cnt/len(errs))
-        st.markdown("---")
+            pct = cnt / len(errs)
+            st.markdown(f"""
+            <div style="margin:8px 0">
+                <strong>{pt}</strong> <span style="color:#888">{cnt} 题 ({pct:.0%})</span>
+                <div style="height:8px;border-radius:4px;background:{'#f5576c' if pct>0.5 else '#4facfe'};width:{int(pct*100)}%"></div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.divider()
+        st.subheader("📋 错题详情")
         for i, e in enumerate(errs):
-            with st.expander(f"错题{i+1}: {e['question']}"):
-                st.markdown(f"你的: {e['your_answer']}  |  正确: {e['correct_answer']}")
-        st.markdown("---")
+            with st.expander(f"错题 {i+1}：{e['q']}"):
+                st.markdown(f"❌ 你的答案：**{e['a']}**")
+                st.markdown(f"✅ 正确答案：**{e['c']}**")
+                st.caption(f"📌 薄弱点：{e['w']}")
+
+        st.divider()
+        st.subheader("💡 复习建议")
         for pt, _ in wc.most_common(2):
-            st.warning(f"建议重点复习「**{pt}**」")
+            st.warning(f"建议重点复习「**{pt}**」相关章节，该知识点错误率较高。")
     else:
-        st.info("暂无错题。参加模拟考试后自动收集。")
+        st.info("暂无错题记录。去参加模拟考试，系统将自动收集错题。")
