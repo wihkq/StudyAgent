@@ -1,6 +1,9 @@
 """StudyAgent Backend - FastAPI 应用入口"""
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from backend.api import router as api_router
 
@@ -19,6 +22,24 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 统一校验错误格式为 {error_code, error_message, details}
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """将 Pydantic 422 转为与业务错误一致的格式"""
+    errors = exc.errors()
+    return JSONResponse(
+        status_code=422,
+        content={
+            "error_code": "VALIDATION_ERROR",
+            "error_message": "请求参数校验失败",
+            "details": [
+                {"field": ".".join(str(loc) for loc in e["loc"]), "message": e["msg"]}
+                for e in errors
+            ],
+        },
+    )
+
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
 # 注册 API 路由
 app.include_router(api_router, prefix="/api/v1")

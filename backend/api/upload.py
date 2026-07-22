@@ -4,8 +4,6 @@ from pathlib import Path
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 
-from config.settings import settings
-
 router = APIRouter()
 
 # 允许的文件格式
@@ -53,16 +51,18 @@ async def upload_file(
             },
         )
 
-    if file_size_mb > settings.max_upload_size_mb:
+    from config.settings import Settings
+    max_mb = Settings().max_upload_size_mb
+    if file_size_mb > max_mb:
         raise HTTPException(
             status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail={
                 "error_code": "FILE_TOO_LARGE",
-                "error_message": f"文件大小 {file_size_mb:.1f}MB 超过限制 {settings.max_upload_size_mb}MB",
+                "error_message": f"文件大小 {file_size_mb:.1f}MB 超过限制 {max_mb}MB",
                 "details": {
                     "filename": file.filename,
                     "size_mb": round(file_size_mb, 1),
-                    "limit_mb": settings.max_upload_size_mb,
+                    "limit_mb": max_mb,
                 },
             },
         )

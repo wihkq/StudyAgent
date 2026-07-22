@@ -98,7 +98,11 @@ def get_embedding() -> EmbeddingProvider:
         return MockEmbedding()
     elif mode == "kimi":
         if api_key:
-            return KimiEmbedding(api_key=api_key)
+            return KimiEmbedding(
+                api_key=api_key,
+                base_url=s.llm_api_base,
+                model=s.llm_model,
+            )
         else:
             logger.warning("LLM_MODE=kimi 但 LLM_API_KEY 未配置，回退 MockEmbedding")
             return MockEmbedding()

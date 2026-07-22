@@ -93,13 +93,16 @@ class TestChatAPI:
     def test_chat_requires_question(self):
         resp = client.post("/api/v1/chat", json={"top_k": 5})
         assert resp.status_code == 422
+        assert resp.json()["error_code"] == "VALIDATION_ERROR"
 
     def test_chat_empty_question_rejected(self):
         resp = client.post("/api/v1/chat", json={"question": ""})
         assert resp.status_code == 422
+        assert resp.json()["error_code"] == "VALIDATION_ERROR"
 
     def test_chat_validates_top_k_range(self):
         resp = client.post("/api/v1/chat", json={"question": "test", "top_k": 0})
         assert resp.status_code == 422
+        assert resp.json()["error_code"] == "VALIDATION_ERROR"
         resp = client.post("/api/v1/chat", json={"question": "test", "top_k": 100})
         assert resp.status_code == 422

@@ -30,8 +30,9 @@ def get_parser(file_path: str = "") -> "ParserAdapter":
     # live 模式：按扩展名选择解析器
     ext = Path(file_path).suffix.lower() if file_path else ""
     if ext == ".pptx":
+        from parser.ocr import get_ocr
         from parser.ppt_parser import PptxParser
-        return PptxParser()
+        return PptxParser(ocr=get_ocr())
     elif ext == ".pdf":
         # PDF 解析尚未实现 (Issue-003 TODO)，降级到 Mock
         from parser.mock_parser import MockParser
