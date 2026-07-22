@@ -85,8 +85,9 @@ def get_embedding() -> EmbeddingProvider:
     """工厂函数：根据 LLM_MODE 返回 Embedding 实例
 
     模式:
-      mock   — MockEmbedding（默认，免费本地）
-      kimi   — KimiEmbedding（月之暗面 API）
+      mock     — MockEmbedding（默认，免费本地）
+      kimi     — KimiEmbedding（月之暗面 API）
+      deepseek — DeepSeek Embedding（OpenAI 兼容，若无则回退 Mock）
     """
     from config.settings import Settings
 
@@ -96,15 +97,16 @@ def get_embedding() -> EmbeddingProvider:
 
     if mode == "mock":
         return MockEmbedding()
-    elif mode == "kimi":
+    elif mode in ("kimi", "deepseek"):
         if api_key:
+            # DeepSeek 和 Kimi 都兼容 OpenAI Embedding 格式
             return KimiEmbedding(
                 api_key=api_key,
                 base_url=s.llm_api_base,
                 model=s.llm_model,
             )
         else:
-            logger.warning("LLM_MODE=kimi 但 LLM_API_KEY 未配置，回退 MockEmbedding")
+            logger.warning("LLM_MODE=%s 但 LLM_API_KEY 未配置，回退 MockEmbedding", mode)
             return MockEmbedding()
     else:
         logger.warning("未知 LLM_MODE=%s，回退 MockEmbedding", mode)

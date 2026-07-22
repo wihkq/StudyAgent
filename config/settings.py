@@ -17,7 +17,7 @@ class Settings(BaseModel):
     )  # mock | python_pptx
     llm_mode: str = Field(
         default_factory=lambda: os.getenv("LLM_MODE", "mock")
-    )  # mock | kimi
+    )  # mock | kimi | deepseek
     vector_mode: str = Field(
         default_factory=lambda: os.getenv("VECTOR_MODE", "mock_faiss")
     )  # mock_faiss | faiss
@@ -38,11 +38,11 @@ class Settings(BaseModel):
     llm_api_key: str = Field(default_factory=lambda: os.getenv("LLM_API_KEY", ""))
     llm_api_base: str = Field(
         default_factory=lambda: os.getenv(
-            "LLM_API_BASE", "https://api.moonshot.cn/v1"
+            "LLM_API_BASE", "https://api.deepseek.com/v1"
         )
     )
     llm_model: str = Field(
-        default_factory=lambda: os.getenv("LLM_MODEL", "moonshot-v1-8k")
+        default_factory=lambda: os.getenv("LLM_MODEL", "deepseek-chat")
     )
 
     # 文件上传限制（MB）
