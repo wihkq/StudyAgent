@@ -23,6 +23,8 @@ pytest-asyncio>=0.23.0
 python-pptx>=0.6.21
 # pypdf        (Issue-003 PDF解析)
 # paddleocr    (Issue-005 OCR)
-# faiss-cpu    (Issue-008 向量数据库)
+# 向量数据库
+faiss-cpu>=1.7.0
+numpy>=1.26.0
 # langchain    (Issue-009+ Agent 开发)
 # openai       (Issue-007+ LLM接入)
