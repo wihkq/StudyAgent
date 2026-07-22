@@ -2,7 +2,6 @@
 from pathlib import Path
 
 from pptx import Presentation
-from pptx.shapes.base import BaseShape
 
 from parser import ParserAdapter
 
