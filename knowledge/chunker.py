@@ -2,9 +2,8 @@
 import re
 import uuid
 
-# 最小/目标 Chunk 长度（字符）
+# 最小 Chunk 长度（字符），短于此值的段落合并到前一个 Chunk
 MIN_CHUNK_SIZE = 50
-TARGET_CHUNK_SIZE = 500
 
 
 def chunk_pages(
