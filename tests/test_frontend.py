@@ -1,9 +1,5 @@
 """测试：前端 session_state 逻辑和页面导入"""
 import datetime
-import sys
-from unittest.mock import MagicMock, patch
-
-import pytest
 
 
 class TestAddCourseLogic:

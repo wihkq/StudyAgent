@@ -128,6 +128,15 @@ class TestUploadValidation:
         response = client.post("/api/v1/upload")
         assert response.status_code == 422
 
+    def test_reject_fake_pptx_magic_bytes(self):
+        """.pptx 扩展名但内容不是 PPTX → 400"""
+        response = client.post(
+            "/api/v1/upload",
+            files=[_make_file("fake.pptx", b"this is not a pptx file")],
+        )
+        assert response.status_code == 400
+        assert response.json()["detail"]["error_code"] == "INVALID_FILE_CONTENT"
+
 
 class TestUploadIdempotency:
     """幂等性：重复上传不冲突"""

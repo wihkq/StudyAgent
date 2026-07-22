@@ -26,7 +26,7 @@ async def upload_file(
     接收 pptx/pdf 文件，校验格式和大小后保存到本地 uploads/ 目录。
     返回文件元数据，文件内容解析由后续 Issue 实现。
     """
-    # 1. 格式校验
+    # 1. 格式校验（扩展名）
     ext = Path(file.filename or "").suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
@@ -38,10 +38,11 @@ async def upload_file(
             },
         )
 
-    # 2. 读取文件内容并校验大小
+    # 2. 读取文件内容
     content = await file.read()
     file_size_mb = len(content) / (1024 * 1024)
 
+    # 3. 大小校验
     if file_size_mb == 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -66,7 +67,23 @@ async def upload_file(
             },
         )
 
-    # 3. 保存文件（uuid 重命名，防止冲突和路径穿越）
+    # 4. Magic Bytes 校验（防止改扩展名绕过，须在大小校验之后）
+    magic_signatures = {
+        ".pptx": b"PK\x03\x04",
+        ".pdf": b"%PDF-",
+    }
+    expected_magic = magic_signatures[ext]
+    if not content.startswith(expected_magic):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error_code": "INVALID_FILE_CONTENT",
+                "error_message": f"文件内容与扩展名 {ext} 不匹配，请上传有效的 {ext} 文件",
+                "details": {"filename": file.filename, "extension": ext},
+            },
+        )
+
+    # 5. 保存文件（uuid 重命名，防止路径穿越）
     file_id = f"doc-{uuid.uuid4().hex[:8]}"
     safe_filename = f"{file_id}{ext}"
     save_path = UPLOAD_DIR / safe_filename
@@ -83,7 +100,7 @@ async def upload_file(
             },
         )
 
-    # 4. 返回元数据
+    # 6. 返回元数据
     return {
         "file_id": file_id,
         "filename": file.filename,
