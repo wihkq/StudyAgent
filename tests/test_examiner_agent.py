@@ -62,12 +62,29 @@ class TestMockExaminerAgent:
         result = asyncio.run(agent.grade(questions, ["Cache 利用局部性"]))
         assert result["score"] == 1
 
+    def test_grade_mismatched_count_raises(self):
+        agent = MockExaminerAgent()
+        questions = [{"type": "choice", "question": "Q1", "answer": "A", "options": [], "keywords": []}]
+        with pytest.raises(ValueError, match="不匹配"):
+            asyncio.run(agent.grade(questions, ["A", "B"]))
+
 
 class TestExaminerAgentBase:
     def test_base_raises(self):
         base = ExaminerAgent()
         with pytest.raises(NotImplementedError):
             asyncio.run(base.generate_exam([]))
+
+
+class TestGradeAPI:
+    """答案数不匹配校验"""
+
+    def test_mismatched_length_returns_422(self):
+        resp = client.post("/api/v1/exam/grade", json={
+            "questions": [{"type": "choice", "question": "Q", "answer": "A", "options": [], "keywords": []}],
+            "answers": ["A", "B"],  # 多一个答案
+        })
+        assert resp.status_code == 422
 
 
 class TestGetExaminerAgent:

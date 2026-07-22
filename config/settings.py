@@ -51,4 +51,5 @@ class Settings(BaseModel):
     )
 
 
-settings = Settings()
+# 各模块通过 from config.settings import Settings 按需创建实例
+# Settings() 每次读取当前环境变量，支持运行时切换

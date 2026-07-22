@@ -41,7 +41,7 @@ def add_course(name: str, file_count: int) -> None:
     """添加课程到列表（Mock）"""
     import uuid
     new_course = {
-        "id": f"crs-{uuid.uuid4().hex[:6]}",
+        "id": f"crs-{uuid.uuid4().hex[:8]}",
         "name": name,
         "file_count": file_count,
         "chapter_count": max(1, file_count // 2),

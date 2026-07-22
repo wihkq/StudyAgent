@@ -56,6 +56,10 @@ class MockExaminerAgent(ExaminerAgent):
         }
 
     async def grade(self, questions: list[dict], answers: list[str]) -> dict:
+        if len(answers) != len(questions):
+            raise ValueError(
+                f"答案数量 ({len(answers)}) 与题目数量 ({len(questions)}) 不匹配"
+            )
         results = []
         correct = 0
 

@@ -1,6 +1,6 @@
 """模拟考试 API"""
-from fastapi import APIRouter
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field, model_validator
 
 router = APIRouter()
 
@@ -13,6 +13,14 @@ class GenerateRequest(BaseModel):
 class GradeRequest(BaseModel):
     questions: list[dict] = Field(..., description="试卷题目列表")
     answers: list[str] = Field(..., description="学生答案列表")
+
+    @model_validator(mode="after")
+    def check_length_match(self):
+        if len(self.answers) != len(self.questions):
+            raise ValueError(
+                f"答案数量 ({len(self.answers)}) 与题目数量 ({len(self.questions)}) 不匹配"
+            )
+        return self
 
 
 @router.post("/exam/generate")

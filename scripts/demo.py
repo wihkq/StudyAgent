@@ -91,7 +91,7 @@ def demo():
             print(f"   [{q['type']}] {q['question'][:60]}...")
 
         # 批改
-        answers = ["A", "五个阶段：取指、译码、执行、访存、写回"]
+        answers = ["A", "五个阶段：取指、译码、执行、访存、写回", "Cache 映射方式", "流水线技术"]
         grade = await examiner.grade(exam["questions"], answers)
         print(f"\n   得分: {grade['score']}/{grade['total']} ({grade['percentage']}%)")
 
