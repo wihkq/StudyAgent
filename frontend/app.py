@@ -115,7 +115,7 @@ with st.sidebar:
 
     page = st.radio(
         "导航",
-        ["📋 首页概览", "📤 上传课件", "📚 我的课程", "🗺️ 知识地图", "📊 学习进度", "📝 错题本"],
+        ["📋 首页概览", "📤 上传课件", "💬 AI 问答", "📅 复习计划", "📝 模拟考试", "📚 我的课程", "🗺️ 知识地图", "📊 学习进度", "📝 错题本"],
         label_visibility="collapsed",
     )
 
@@ -238,7 +238,141 @@ elif page == "📤 上传课件":
                 st.rerun()
 
 
+elif page == "💬 AI 问答":
+    st.title("💬 智能问答")
+    st.caption("基于已上传课件内容，回答你的学习问题")
+
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+
+    # 聊天记录
+    for msg in st.session_state.chat_history[-10:]:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+
+    question = st.chat_input("输入你的问题，例如：什么是局部性原理？")
+    if question:
+        st.chat_message("user").markdown(question)
+        try:
+            from agents.tutor_agent import get_tutor_agent
+            from knowledge.embedding import get_embedding
+            from knowledge.retriever import Retriever
+            from knowledge.vector_store import get_vector_store
+            emb = get_embedding()
+            store = get_vector_store()
+            retriever = Retriever(emb, store)
+            chunks = __import__("asyncio").run(retriever.retrieve(question, top_k=3))
+            agent = get_tutor_agent()
+            result = __import__("asyncio").run(agent.answer(question, chunks))
+            answer = result["answer"]
+            st.session_state.chat_history.append({"role": "user", "content": question})
+            st.session_state.chat_history.append({"role": "assistant", "content": answer})
+            st.rerun()
+        except Exception as e:
+            st.error(f"问答出错：{e}\n\n请确认已上传课件并构建知识库。")
+
+
+elif page == "📅 复习计划":
+    st.title("📅 复习计划")
+    st.caption("根据考试日期和可用时间，自动生成个性化复习安排")
+
+    c1, c2 = st.columns(2)
+    with c1:
+        exam_date = st.date_input("考试日期", value=st.session_state.exam_date)
+    with c2:
+        daily_hours = st.slider("每日学习时间（小时）", 0.5, 12.0, 4.0, 0.5)
+
+    chapters_data = [
+        {"title": "第一章", "importance": 3, "page_count": 2, "key_points": ["核心概念"]},
+        {"title": "第二章", "importance": 5, "page_count": 3, "key_points": ["重点理论", "关键公式"]},
+        {"title": "第三章", "importance": 4, "page_count": 2, "key_points": ["核心方法"]},
+        {"title": "第四章", "importance": 5, "page_count": 3, "key_points": ["进阶应用", "案例分析"]},
+    ]
+
+    if st.button("生成复习计划", type="primary", use_container_width=True):
+        try:
+            from agents.planner_agent import get_planner_agent
+            agent = get_planner_agent()
+            plan = __import__("asyncio").run(agent.generate(exam_date.isoformat(), daily_hours, chapters_data))
+            st.success(plan["summary"]["message"])
+            for day in plan["plan"]:
+                with st.container(border=True):
+                    st.markdown(f"**第 {day['day']} 天** — {day['date']}")
+                    for t in day["tasks"]:
+                        st.markdown(f"- {t['type']}：{t['title']}（{t['hours']}h）")
+        except Exception as e:
+            st.error(f"生成失败：{e}")
+
+
+elif page == "📝 模拟考试":
+    st.title("📝 模拟考试")
+    st.caption("基于课程内容自动生成试卷，答题后自动批改")
+
+    chapters_data = [
+        {"title": "第一章", "importance": 3, "page_count": 2, "key_points": ["核心概念的定义", "学习目标"]},
+        {"title": "第二章", "importance": 5, "page_count": 3, "key_points": ["重点理论", "关键公式推导", "应用场景"]},
+        {"title": "第三章", "importance": 4, "page_count": 2, "key_points": ["核心方法论"]},
+        {"title": "第四章", "importance": 5, "page_count": 3, "key_points": ["进阶技巧", "案例分析"]},
+    ]
+
+    if "exam_questions" not in st.session_state:
+        st.session_state.exam_questions = None
+        st.session_state.exam_answers = None
+
+    tab1, tab2 = st.tabs(["📝 生成试卷", "📊 批改结果"])
+
+    with tab1:
+        q_count = st.slider("题目数量", 2, 10, 4)
+        if st.button("开始生成试卷", type="primary", use_container_width=True):
+            try:
+                from agents.examiner_agent import get_examiner_agent
+                agent = get_examiner_agent()
+                exam = __import__("asyncio").run(agent.generate_exam(chapters_data, q_count))
+                st.session_state.exam_questions = exam["questions"]
+                st.session_state.exam_answers = [""] * len(exam["questions"])
+                st.rerun()
+            except Exception as e:
+                st.error(f"生成失败：{e}")
+
+        if st.session_state.exam_questions:
+            st.subheader("请作答")
+            for i, q in enumerate(st.session_state.exam_questions):
+                st.markdown(f"**{i+1}.** [{q['type']}] {q['question']}")
+                if q["type"] == "choice":
+                    st.session_state.exam_answers[i] = st.radio(
+                        f"选择答案", q["options"], key=f"ans_{i}", index=None
+                    )
+                else:
+                    st.session_state.exam_answers[i] = st.text_input(
+                        f"你的回答", key=f"ans_{i}", placeholder="请输入答案..."
+                    )
+            if st.button("提交批改", type="primary", use_container_width=True):
+                try:
+                    from agents.examiner_agent import get_examiner_agent
+                    agent = get_examiner_agent()
+                    result = __import__("asyncio").run(
+                        agent.grade(st.session_state.exam_questions, st.session_state.exam_answers)
+                    )
+                    st.session_state.grade_result = result
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"批改失败：{e}")
+
+    with tab2:
+        if "grade_result" in st.session_state and st.session_state.grade_result:
+            r = st.session_state.grade_result
+            st.metric("得分", f"{r['score']}/{r['total']}（{r['percentage']}%）")
+            for item in r["results"]:
+                icon = "✅" if item["is_correct"] else "❌"
+                with st.expander(f"{icon} {item['question'][:40]}..."):
+                    st.markdown(f"你的答案：{item['your_answer']}")
+                    st.markdown(f"正确答案：{item['correct_answer']}")
+        else:
+            st.info("请先在「生成试卷」中答题并提交批改。")
+
+
 elif page == "📚 我的课程":
+
     st.title("📚 我的课程")
     st.caption(f"共 {len(st.session_state.courses)} 门课程")
 
