@@ -1,0 +1,27 @@
+# StudyAgent 依赖
+# MVP 阶段核心依赖
+
+# Web 框架
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+
+# 前端原型
+streamlit>=1.32.0
+
+# 数据验证
+pydantic>=2.6.0
+
+# HTTP 客户端（测试用）
+httpx>=0.27.0
+
+# 测试
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+
+# ===== 后续 Issue 按需添加 =====
+# python-pptx  (Issue-004 PPT文本解析)
+# pypdf        (Issue-003 PDF解析)
+# paddleocr    (Issue-005 OCR)
+# faiss-cpu    (Issue-008 向量数据库)
+# langchain    (Issue-009+ Agent 开发)
+# openai       (Issue-007+ LLM接入)
