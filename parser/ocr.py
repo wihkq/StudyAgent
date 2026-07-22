@@ -1,0 +1,47 @@
+"""OCR Provider — 图片文字识别接口
+
+可替换实现：MockOCR / PaddleOCR
+"""
+
+
+class OCRProvider:
+    """OCR 抽象基类"""
+
+    async def recognize(self, image_data: bytes) -> str:
+        """识别图片中的文字
+
+        Args:
+            image_data: 图片二进制数据
+
+        Returns:
+            识别出的文字内容，无文字时返回空字符串
+        """
+        raise NotImplementedError
+
+
+class MockOCR(OCRProvider):
+    """Mock OCR — 返回固定演示文字，用于无 OCR 引擎时的流程验证"""
+
+    async def recognize(self, image_data: bytes) -> str:
+        """Mock 识别：对非空图片返回固定文字"""
+        if not image_data:
+            return ""
+        # 返回演示文字，模拟 OCR 识别结果
+        return "（图片文字识别结果）"
+
+
+def get_ocr() -> OCRProvider:
+    """工厂函数：根据全局配置返回 OCR 实例"""
+    import os
+
+    ocr_mode = os.getenv("OCR_MODE", "mock")
+    if ocr_mode == "mock":
+        return MockOCR()
+    elif ocr_mode == "paddle":
+        # PaddleOCR 占位 — 真实集成留到后续，暂回退 Mock
+        return MockOCR()
+    else:
+        return MockOCR()
+
+
+__all__ = ["OCRProvider", "MockOCR", "get_ocr"]
