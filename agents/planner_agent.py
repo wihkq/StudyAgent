@@ -60,8 +60,6 @@ class MockPlannerAgent(PlannerAgent):
         # 按重要程度排序（高的先学）
         sorted_chapters = sorted(chapters, key=lambda c: c.get("importance", 1), reverse=True)
 
-        # 分配天数：每个章节至少 1 天，重要章节额外加
-        base_days = max(1, total_days // max(len(sorted_chapters), 1))
         plan = []
         current_date = today
 
