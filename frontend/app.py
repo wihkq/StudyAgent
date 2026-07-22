@@ -16,10 +16,10 @@ if "courses" not in st.session_state:
     st.session_state.courses = [
         {
             "id": "crs-demo01",
-            "name": "计算机组成原理",
-            "file_count": 12,
-            "chapter_count": 8,
-            "upload_date": "2026-07-20",
+            "name": "示例课程",
+            "file_count": 8,
+            "chapter_count": 5,
+            "upload_date": datetime.date.today().isoformat(),
             "status": "ready",  # ready / processing / error
         }
     ]
@@ -99,23 +99,8 @@ if page == "🏠 首页 Dashboard":
             st.rerun()
 
     # 快速入口
-    st.markdown("### 🚀 快速操作")
-    col_a, col_b, col_c = st.columns(3)
-    with col_a:
-        st.info("**📤 上传课程资料**\n\n上传 PPT/PDF 开始学习", icon="📤")
-        if st.button("去上传", key="goto_upload"):
-            st.session_state._nav_override = "📤 上传资料"
-            st.rerun()
-    with col_b:
-        st.info("**📚 查看课程列表**\n\n浏览已上传的课程内容", icon="📚")
-        if st.button("去查看", key="goto_courses"):
-            st.session_state._nav_override = "📚 课程列表"
-            st.rerun()
-    with col_c:
-        st.info("**📊 学习进度**\n\n追踪复习完成情况", icon="📊")
-        if st.button("去追踪", key="goto_progress"):
-            st.session_state._nav_override = "📊 学习进度"
-            st.rerun()
+    st.markdown("### 🚀 功能入口")
+    st.info("使用左侧导航栏切换：📤 上传资料 · 📚 课程列表 · 📊 学习进度")
 
     # 最近课程
     st.markdown("### 📖 最近课程")
@@ -158,7 +143,7 @@ elif page == "📤 上传资料":
         course_name = st.text_input(
             "课程名称",
             value=uploaded_files[0].name.rsplit(".", 1)[0] if uploaded_files else "",
-            placeholder="例如：计算机组成原理",
+            placeholder="例如：高等数学",
         )
 
         if st.button("🚀 开始上传并解析", type="primary", use_container_width=True):
@@ -195,7 +180,7 @@ elif page == "📤 上传资料":
         st.markdown("---")
         # 演示用 Mock 快速添加
         with st.expander("💡 没有 PPT？点这里添加演示课程"):
-            demo_name = st.text_input("课程名称", value="操作系统", key="demo_course")
+            demo_name = st.text_input("课程名称", value="示例课程", key="demo_course")
             demo_count = st.slider("模拟文件数", 1, 20, 8)
             if st.button("添加演示课程"):
                 add_course(demo_name, demo_count)

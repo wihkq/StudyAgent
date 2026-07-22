@@ -91,7 +91,8 @@ class TestFrontendImport:
         """工程规范：Agent Prompt 中不得硬编码具体课程知识"""
         with open("frontend/app.py") as f:
             content = f.read()
-        # 不应出现具体课程知识点
-        forbidden = ["Cache映射方式", "三种映射", "直接映射", "全相联映射"]
+        # 不应出现具体课程知识点（演示数据「示例课程」是占位名，允许）
+        forbidden = ["Cache映射方式", "三种映射", "直接映射", "全相联映射",
+                      "计算机组成原理", "操作系统原理"]
         for phrase in forbidden:
             assert phrase not in content, f"禁止硬编码课程知识: {phrase}"
