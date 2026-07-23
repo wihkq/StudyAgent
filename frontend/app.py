@@ -1,4 +1,8 @@
 """StudyAgent 前端 — 智能期末复习助手"""
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import datetime
 import random
 import time
