@@ -81,6 +81,12 @@ if "courses" not in st.session_state:
     ]
 if "current_course_id" not in st.session_state:
     st.session_state.current_course_id = None
+if "global_store" not in st.session_state:
+    from knowledge.embedding import get_embedding
+    from knowledge.vector_store import get_vector_store
+    st.session_state.global_embedding = get_embedding()
+    st.session_state.global_store = get_vector_store(dim=128)
+    st.session_state.knowledge_count = 0
 if "learning_stats" not in st.session_state:
     st.session_state.learning_stats = {
         "total_study_hours": 6.5,
@@ -152,12 +158,16 @@ with st.sidebar:
     if days_left >= 0:
         st.markdown(f"""
         <div style="text-align:center;padding:12px;border-radius:12px;background:rgba(255,255,255,0.08)">
-            <div style="font-size:12px;color:#aaa">距离考试还有</div>
+            <div style="font-size:12px;color:#aaa">距离考试</div>
             <div style="font-size:28px;font-weight:700;color:#38ef7d">{days_left} 天</div>
         </div>
         """, unsafe_allow_html=True)
     else:
         st.error("考试日期已过")
+    import os
+    llm_mode = os.getenv("LLM_MODE", "mock")
+    emoji = {"mock": "🧪", "deepseek": "🧠", "kimi": "🧠"}.get(llm_mode, "🤖")
+    st.caption(f"{emoji} LLM: {llm_mode} | 📚 知识库: {st.session_state.knowledge_count} 条")
 
 
 # ===== 页面路由 =====
@@ -339,15 +349,14 @@ elif page == "💬 AI 问答":
         st.chat_message("user").markdown(question)
         try:
             from agents.tutor_agent import get_tutor_agent
-            from knowledge.embedding import get_embedding
             from knowledge.retriever import Retriever
-            from knowledge.vector_store import get_vector_store
-            emb = get_embedding()
-            store = get_vector_store()
+            emb = st.session_state.global_embedding
+            store = st.session_state.global_store
             retriever = Retriever(emb, store)
-            chunks = __import__("asyncio").run(retriever.retrieve(question, top_k=3))
+            import asyncio
+            chunks = asyncio.run(retriever.retrieve(question, top_k=3))
             agent = get_tutor_agent()
-            result = __import__("asyncio").run(agent.answer(question, chunks))
+            result = asyncio.run(agent.answer(question, chunks))
             answer = result["answer"]
             st.session_state.chat_history.append({"role": "user", "content": question})
             st.session_state.chat_history.append({"role": "assistant", "content": answer})
