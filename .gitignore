@@ -31,6 +31,7 @@ milvus_data/
 
 # 上传的文件
 uploads/
+data/
 
 # 日志
 logs/

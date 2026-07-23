@@ -4,9 +4,45 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import datetime
+import pickle
 import random
 import time
+from pathlib import Path
 import streamlit as st
+
+# ===== 数据持久化 =====
+DATA_DIR = Path("data")
+DATA_DIR.mkdir(exist_ok=True)
+COURSES_FILE = DATA_DIR / "courses.pkl"
+KNOWLEDGE_FILE = DATA_DIR / "knowledge.pkl"
+
+
+def load_data():
+    """从磁盘加载课程和知识库"""
+    courses = []
+    knowledge = {}
+    try:
+        if COURSES_FILE.exists():
+            with open(COURSES_FILE, "rb") as f:
+                courses = pickle.load(f)
+    except Exception:
+        pass
+    try:
+        if KNOWLEDGE_FILE.exists():
+            with open(KNOWLEDGE_FILE, "rb") as f:
+                knowledge = pickle.load(f)
+    except Exception:
+        pass
+    return courses, knowledge
+
+
+def save_courses():
+    """保存课程数据到磁盘"""
+    try:
+        with open(COURSES_FILE, "wb") as f:
+            pickle.dump(st.session_state.courses, f)
+    except Exception:
+        pass
 
 # ===== 页面配置 =====
 st.set_page_config(
@@ -69,41 +105,60 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ===== 初始化 session_state =====
-if "courses" not in st.session_state:
-    st.session_state.courses = [
-        {
-            "id": "crs-demo01",
-            "name": "示例课程",
-            "created_date": datetime.date.today().isoformat(),
-            "exam_date": (datetime.date.today() + datetime.timedelta(days=14)).isoformat(),
-            "files": [
-                {"name": "第一章课件.pptx", "upload_date": datetime.date.today().isoformat(), "size_mb": 2.3},
-                {"name": "第二章课件.pptx", "upload_date": datetime.date.today().isoformat(), "size_mb": 3.1},
-                {"name": "复习资料.pdf", "upload_date": datetime.date.today().isoformat(), "size_mb": 1.5},
-            ],
-        }
-    ]
+if "initialized" not in st.session_state:
+    loaded_courses, _ = load_data()
+    if loaded_courses:
+        st.session_state.courses = loaded_courses
+    else:
+        st.session_state.courses = [
+            {"id": "crs-demo01", "name": "示例课程",
+             "created_date": datetime.date.today().isoformat(),
+             "exam_date": (datetime.date.today() + datetime.timedelta(days=14)).isoformat(),
+             "files": []}
+        ]
+    st.session_state.initialized = True
 if "current_course_id" not in st.session_state:
     st.session_state.current_course_id = None
 if "global_store" not in st.session_state:
     from knowledge.embedding import get_embedding
     from knowledge.vector_store import get_vector_store
-    st.session_state.global_embedding = get_embedding()
-    st.session_state.global_store = get_vector_store(dim=128)
-    st.session_state.knowledge_count = 0
+    from knowledge.retriever import Retriever
+    import asyncio
+    emb = get_embedding()
+    store = get_vector_store(dim=128)
+    st.session_state.global_embedding = emb
+    st.session_state.global_store = store
+    count = 0
+    for course in st.session_state.courses:
+        for f in course.get("files", []):
+            p = f.get("path", "")
+            if p and Path(p).exists() and p.endswith(".pptx"):
+                try:
+                    from pptx import Presentation
+                    from knowledge.chunker import chunk_pages
+                    prs = Presentation(p)
+                    pages = []
+                    for i, slide in enumerate(prs.slides):
+                        title = slide.shapes.title.text if slide.shapes.title else ""
+                        texts = []
+                        for s in slide.shapes:
+                            if s.has_text_frame:
+                                for para in s.text_frame.paragraphs:
+                                    if para.text.strip(): texts.append(para.text.strip())
+                        pages.append({"page": i+1, "title": title, "content": " ".join(texts)})
+                    if pages:
+                        chunks = chunk_pages(pages, source_file=f["name"])
+                        ret = Retriever(emb, store)
+                        asyncio.run(ret.add_chunks(chunks))
+                        count += len(chunks)
+                except: pass
+    st.session_state.knowledge_count = count
 if "learning_stats" not in st.session_state:
-    st.session_state.learning_stats = {
-        "total_study_hours": 6.5,
-        "completed_chapters": 3,
-        "total_chapters": 8,
-        "correct_rate": 0.78,
-        "questions_answered": 24,
-    }
+    st.session_state.learning_stats = {"total_study_hours": 6.5, "completed_chapters": 3, "total_chapters": 8, "correct_rate": 0.78, "questions_answered": 24}
 if "exam_date" not in st.session_state:
     st.session_state.exam_date = datetime.date.today() + datetime.timedelta(days=14)
 
-
-# ===== 辅助函数 =====
+# ===== 辅助函数 =====# ===== 辅助函数 =====
 def add_course(name: str) -> str:
     """创建新课程，返回课程 ID"""
     import uuid
@@ -115,6 +170,7 @@ def add_course(name: str) -> str:
         "exam_date": (datetime.date.today() + datetime.timedelta(days=14)).isoformat(),
         "files": [],
     })
+    save_courses()
     return cid
 
 def add_file_to_course(course_id: str, filename: str, filedata: bytes) -> None:
@@ -137,6 +193,7 @@ def add_file_to_course(course_id: str, filename: str, filedata: bytes) -> None:
                 "upload_date": datetime.date.today().isoformat(),
                 "size_mb": size_mb,
             })
+            save_courses()
             break
 
 
@@ -315,7 +372,7 @@ elif page == "📚 我的课程":
                             chunks = chunk_pages(all_pages, source_file=fdata.name)
                             ret = Retriever(st.session_state.global_embedding, st.session_state.global_store)
                             asyncio.run(ret.add_chunks(chunks))
-                            st.session_state.knowledge_count += len(chunks)
+                            st.session_state.knowledge_count += len(chunks); save_courses()
                             st.success(f"✅ 知识库已更新，新增 {len(chunks)} 条知识")
                     except Exception as e:
                         st.warning(f"知识库构建失败（问答仍可用 Mock 模式）: {e}")
