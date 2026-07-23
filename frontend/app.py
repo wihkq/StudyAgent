@@ -128,10 +128,14 @@ if "global_store" not in st.session_state:
     store = get_vector_store(dim=128)
     st.session_state.global_embedding = emb
     st.session_state.global_store = store
+    # 只在首次初始化时重建（避免重启重复累加）
     count = 0
+    seen_files = set()
     for course in st.session_state.courses:
         for f in course.get("files", []):
             p = f.get("path", "")
+            if p and p in seen_files: continue
+            seen_files.add(p)
             if p and Path(p).exists() and p.endswith(".pptx"):
                 try:
                     from pptx import Presentation
@@ -186,6 +190,8 @@ def add_file_to_course(course_id: str, filename: str, filedata: bytes) -> None:
     size_mb = round(len(filedata) / (1024 * 1024), 2)
     for c in st.session_state.courses:
         if c["id"] == course_id:
+            if any(f["name"] == filename for f in c.get("files", [])):
+                return
             c["files"].append({
                 "name": filename,
                 "file_id": file_id,
