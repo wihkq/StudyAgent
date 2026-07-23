@@ -289,8 +289,36 @@ elif page == "📚 我的课程":
                 )
                 if uploaded_files:
                     for f in uploaded_files:
-                        add_file_to_course(cur["id"], f.name, f.size / (1024 * 1024))
+                        add_file_to_course(cur["id"], f.name, f.read())
                     st.success(f"已添加 {len(uploaded_files)} 个课件到「{cur['name']}」")
+                    # 自动构建知识库
+                    try:
+                        from knowledge.chunker import chunk_pages
+                        from knowledge.retriever import Retriever
+                        import asyncio, io
+                        all_pages = []
+                        for fdata in uploaded_files:
+                            if fdata.name.endswith(".pptx"):
+                                from pptx import Presentation
+                                fdata.seek(0)
+                                prs = Presentation(io.BytesIO(fdata.read()))
+                                for i, slide in enumerate(prs.slides):
+                                    title = slide.shapes.title.text if slide.shapes.title else ""
+                                    texts = []
+                                    for s in slide.shapes:
+                                        if s.has_text_frame:
+                                            for p in s.text_frame.paragraphs:
+                                                if p.text.strip():
+                                                    texts.append(p.text.strip())
+                                    all_pages.append({"page": i+1, "title": title, "content": " ".join(texts)})
+                        if all_pages:
+                            chunks = chunk_pages(all_pages, source_file=fdata.name)
+                            ret = Retriever(st.session_state.global_embedding, st.session_state.global_store)
+                            asyncio.run(ret.add_chunks(chunks))
+                            st.session_state.knowledge_count += len(chunks)
+                            st.success(f"✅ 知识库已更新，新增 {len(chunks)} 条知识")
+                    except Exception as e:
+                        st.warning(f"知识库构建失败（问答仍可用 Mock 模式）: {e}")
                     st.rerun()
 
                 # 已上传课件列表
