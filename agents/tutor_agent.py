@@ -96,7 +96,7 @@ class LLMTutorAgent(TutorAgent):
 
     async def answer(self, question: str, retrieved_chunks: list[dict]) -> dict:
         if not retrieved_chunks:
-            return MockTutorAgent().answer(question, [])
+            return await MockTutorAgent().answer(question, [])
 
         # 拼接检索内容为上下文
         context_parts = []
