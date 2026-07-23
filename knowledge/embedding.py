@@ -97,16 +97,19 @@ def get_embedding() -> EmbeddingProvider:
 
     if mode == "mock":
         return MockEmbedding()
-    elif mode in ("kimi", "deepseek"):
+    elif mode == "deepseek":
+        # DeepSeek 目前不支持 Embedding API，使用本地 Mock
+        logger.info("DeepSeek 模式：Embedding 使用本地 Mock")
+        return MockEmbedding()
+    elif mode == "kimi":
         if api_key:
-            # DeepSeek 和 Kimi 都兼容 OpenAI Embedding 格式
             return KimiEmbedding(
                 api_key=api_key,
                 base_url=s.llm_api_base,
                 model=s.llm_model,
             )
         else:
-            logger.warning("LLM_MODE=%s 但 LLM_API_KEY 未配置，回退 MockEmbedding", mode)
+            logger.warning("LLM_MODE=kimi 但 LLM_API_KEY 未配置，回退 MockEmbedding")
             return MockEmbedding()
     else:
         logger.warning("未知 LLM_MODE=%s，回退 MockEmbedding", mode)
